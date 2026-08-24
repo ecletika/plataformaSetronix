@@ -1,0 +1,18 @@
+# Configuração com credenciais e app_key — nunca versionar
+config.php
+
+# Dados de execução — as pastas são versionadas vazias, o conteúdo não
+storage/backups/*
+storage/uploads/*
+storage/.installed
+!storage/.htaccess
+!storage/backups/.gitkeep
+!storage/uploads/.gitkeep
+
+# Ferramentas locais
+.claude-flow/
+.claude/
+
+# Sistema
+.DS_Store
+Thumbs.db

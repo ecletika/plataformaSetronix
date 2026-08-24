@@ -1,0 +1,14 @@
+# O destino é um servidor Linux (cPanel): manter LF em todos os ficheiros de texto.
+* text=auto eol=lf
+
+*.php   text eol=lf
+*.sql   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+.htaccess text eol=lf
+
+# Binários
+*.xlsx  binary
+*.png   binary
+*.jpg   binary
+*.gz    binary

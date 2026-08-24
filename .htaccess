@@ -1,0 +1,41 @@
+# =====================================================================
+# Plataforma Setronix — configuração Apache (cPanel)
+# =====================================================================
+
+# --- Forçar HTTPS -----------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+</IfModule>
+
+# --- Página inicial ---------------------------------------------------
+DirectoryIndex index.php
+
+# --- Proteger ficheiros sensíveis -------------------------------------
+<FilesMatch "^(config\.php|config\.sample\.php|.*\.sql|.*\.md|\.gitignore)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# --- Impedir listagem de diretórios -----------------------------------
+Options -Indexes
+
+# --- Cabeçalhos de segurança ------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "same-origin"
+</IfModule>
+
+# --- Limite de upload (importação de listas) --------------------------
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+</IfModule>
