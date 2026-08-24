@@ -16,3 +16,7 @@ storage/.installed
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Atalhos do ambiente local de demonstracao (nao pertencem a aplicacao)
+dev-local.bat
+codigo-mfa.bat
