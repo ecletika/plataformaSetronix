@@ -1,0 +1,38 @@
+---
+# ---------------------------------------------------------------------
+# Publicação automática no cPanel
+#
+# Usado pelo Git Version Control do cPanel:
+#   Manage → Pull or Deploy → Update from Remote → Deploy HEAD Commit
+#
+# ALTERE DEPLOYPATH se a aplicação não ficar na raiz do domínio.
+# Exemplos:
+#   raiz do domínio      /home/planeamentostx/public_html
+#   subpasta             /home/planeamentostx/public_html/plataforma
+#   subdomínio           /home/planeamentostx/planeamento.dominio.pt
+# ---------------------------------------------------------------------
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/planeamentostx/public_html
+
+    # 1. Copia a aplicação. O glob * não apanha ficheiros ocultos na raiz,
+    #    mas os .htaccess dentro de lib/, legacy/ e storage/ vão junto com
+    #    as respetivas pastas na cópia recursiva.
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R ./* $DEPLOYPATH/
+
+    # 2. O .htaccess da raiz tem de ser copiado à parte (força HTTPS e
+    #    protege o config.php). Sem esta linha o site fica exposto.
+    - /bin/cp -f ./.htaccess $DEPLOYPATH/.htaccess
+
+    # 3. Pastas de dados. O config.php e os backups já existentes NÃO são
+    #    tocados: a cópia só sobrepõe ficheiros com o mesmo nome.
+    - /bin/mkdir -p $DEPLOYPATH/storage/backups $DEPLOYPATH/storage/uploads
+    - /bin/chmod 750 $DEPLOYPATH/storage $DEPLOYPATH/storage/backups $DEPLOYPATH/storage/uploads
+
+    # 4. Depois da instalação estar concluída, o assistente deixa de ser
+    #    publicado — para não voltar a aparecer a cada deploy.
+    - /bin/sh -c 'if [ -f "$DEPLOYPATH/storage/.installed" ]; then rm -rf "$DEPLOYPATH/install"; fi'
+
+    # 5. Protege o ficheiro de configuração, se já tiver sido criado.
+    - /bin/sh -c 'if [ -f "$DEPLOYPATH/config.php" ]; then chmod 640 "$DEPLOYPATH/config.php"; fi'
