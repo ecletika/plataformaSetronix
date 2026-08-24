@@ -52,6 +52,45 @@ function env_checks(): array
     ];
 }
 
+/**
+ * Traduz os erros de ligação do MySQL em instruções concretas para o cPanel,
+ * que é onde a base de dados e o utilizador têm mesmo de ser criados.
+ */
+function db_error_hint(PDOException $ex, array $db): string
+{
+    $code = (string)$ex->getCode();
+    $msg  = $ex->getMessage();
+
+    // Prefixo da conta cPanel, deduzido do caminho da home.
+    $conta = basename(dirname(APP_ROOT));
+    $exemplo = preg_match('/^[a-z0-9]+$/i', $conta) ? $conta . '_' : 'conta_';
+
+    if (strpos($msg, '1045') !== false) {
+        return 'Utilizador ou palavra-passe da base de dados incorretos (o MySQL recusou "'
+            . $db['user'] . '").'
+            . ' No cPanel os nomes levam sempre o prefixo da conta — algo como "' . $exemplo . 'app",'
+            . ' não "root" nem "sa".'
+            . ' Crie a base de dados e o utilizador em cPanel → MySQL® Databases,'
+            . ' associe-os com ALL PRIVILEGES, e copie aqui os nomes exatamente como o cPanel os mostra.';
+    }
+    if (strpos($msg, '1049') !== false) {
+        return 'A base de dados "' . $db['name'] . '" não existe.'
+            . ' Crie-a primeiro em cPanel → MySQL® Databases; o nome final ficará com o prefixo'
+            . ' da conta, por exemplo "' . $exemplo . 'planeamento".';
+    }
+    if (strpos($msg, '2002') !== false || strpos($msg, '2003') !== false) {
+        return 'Não foi possível contactar o servidor MySQL em "' . $db['host'] . ':' . $db['port'] . '".'
+            . ' Em alojamento cPanel o servidor é quase sempre "localhost" na porta 3306.';
+    }
+    if (strpos($msg, '1044') !== false) {
+        return 'O utilizador "' . $db['user'] . '" existe mas não tem acesso à base de dados "'
+            . $db['name'] . '".'
+            . ' No cPanel → MySQL® Databases, secção "Add User to Database", associe os dois'
+            . ' e atribua ALL PRIVILEGES.';
+    }
+    return 'Não foi possível ligar à base de dados: ' . $msg;
+}
+
 /** Escreve o config.php a partir dos dados do formulário. */
 function write_config(array $db, string $appKey, string $org, string $appName): void
 {
@@ -136,8 +175,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Testa a ligação antes de gravar seja o que for.
             $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
                            $db['host'], $db['port'], $db['name']);
-            $pdo = new PDO($dsn, $db['user'], $db['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            $pdo->query('SELECT 1');
+            try {
+                $pdo = new PDO($dsn, $db['user'], $db['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $pdo->query('SELECT 1');
+            } catch (PDOException $ex) {
+                throw new RuntimeException(db_error_hint($ex, $db));
+            }
 
             write_config(
                 $db,
