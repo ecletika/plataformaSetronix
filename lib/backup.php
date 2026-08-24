@@ -80,6 +80,15 @@ function backup_try_mysqldump(string $path): bool
     if (in_array('shell_exec', $disabled, true) || in_array('proc_open', $disabled, true)) {
         return false;
     }
+    // Confirma que o binário existe antes de o invocar, para não poluir a
+    // saída com erros do interpretador de comandos.
+    if (stripos(PHP_OS_FAMILY, 'Windows') === 0) {
+        return false;   // em Windows (ambiente de testes) usa-se sempre o dump em PHP
+    }
+    $which = @shell_exec('command -v mysqldump 2>/dev/null');
+    if (!is_string($which) || trim($which) === '') {
+        return false;
+    }
 
     $c = $CONFIG['db'];
     // A password vai por ficheiro temporário, nunca na linha de comandos.

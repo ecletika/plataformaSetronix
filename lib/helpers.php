@@ -125,6 +125,27 @@ function hex2bin_key(string $hex): string
     return substr($bin, 0, 32);
 }
 
+/**
+ * Garante que um texto é UTF-8 válido antes de chegar à base de dados.
+ *
+ * Nomes de ficheiros enviados por upload chegam na codificação do sistema do
+ * utilizador (frequentemente Windows-1252 em Portugal), e o MySQL rejeita
+ * bytes inválidos numa coluna utf8mb4 com o erro 1366.
+ */
+function to_utf8(?string $text): string
+{
+    $text = (string)$text;
+    if ($text === '' || mb_check_encoding($text, 'UTF-8')) {
+        return $text;
+    }
+    $converted = @mb_convert_encoding($text, 'UTF-8', 'Windows-1252, ISO-8859-1');
+    if (is_string($converted) && mb_check_encoding($converted, 'UTF-8')) {
+        return $converted;
+    }
+    // Último recurso: descarta os bytes que não formam UTF-8 válido.
+    return (string)preg_replace('/[^\x00-\x7F]/', '?', $text);
+}
+
 /** Normaliza uma data para a segunda-feira dessa semana (Y-m-d). */
 function monday_of(string $date): string
 {

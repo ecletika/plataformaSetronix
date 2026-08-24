@@ -99,6 +99,8 @@ function lists_norm_header(string $h): string
  */
 function lists_import(string $path, string $originalName, string $mode = 'merge', ?int $userId = null): array
 {
+    // O nome do ficheiro vem do computador do utilizador e pode não ser UTF-8.
+    $originalName = mb_substr(to_utf8($originalName), 0, 255);
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     $rows = $ext === 'csv' ? csv_read($path) : xlsx_read($path);
 

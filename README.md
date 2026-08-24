@@ -106,6 +106,24 @@ Todos os perfis passam obrigatoriamente por MFA.
 > **Se a `app_key` do `config.php` se perder, todos os utilizadores terão de
 > voltar a inscrever o MFA.** Guarde-a junto das credenciais da base de dados.
 
+> **Restauro e log de alterações:** um restauro repõe a base de dados no estado
+> exato do backup — incluindo o `audit_log`, que perde os registos posteriores.
+> O estado anterior fica preservado no backup de segurança criado
+> automaticamente antes do restauro, e o próprio restauro é registado.
+
+### Testes realizados
+
+Validado localmente em XAMPP 8.2 (PHP 8.2.12 + MariaDB 10.4):
+
+- **81 verificações** de unidade/integração: cifra AES-256-GCM, TOTP contra os
+  vetores da RFC 6238, códigos de recuperação, bloqueio por tentativas,
+  permissões, importação do Excel real, backup e restauro, auditoria.
+- **45 verificações** por HTTP: percurso completo login → MFA → aplicação →
+  administração, proteção de rotas, rejeição de CSRF, criação de utilizadores,
+  exportação do log, backup pela interface.
+- **37 verificações** do assistente de instalação, do ambiente vazio até ao
+  primeiro login com MFA ativado.
+
 ## 6. Formato do ficheiro de listas base
 
 Primeira linha = cabeçalhos; cada coluna é uma lista independente lida de cima

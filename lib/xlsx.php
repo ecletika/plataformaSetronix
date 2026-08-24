@@ -190,7 +190,9 @@ function csv_read(string $path): array
         $line++;
         $clean = [];
         foreach ($cells as $i => $v) {
-            $v = trim((string)$v);
+            // Um CSV gravado pelo Excel em Portugal vem normalmente em
+            // Windows-1252, não em UTF-8.
+            $v = trim(to_utf8((string)$v));
             if ($v !== '') {
                 $clean[$i] = $v;
             }

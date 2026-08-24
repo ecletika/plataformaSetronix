@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Não foi possível guardar o ficheiro.');
             }
             q('INSERT INTO backups (filename, size_bytes, kind, sha256, user_id) VALUES (?,?,?,?,?)',
-              [basename($dest), (int)filesize($dest), 'manual', hash_file('sha256', $dest), (int)$me['id']]);
+              [to_utf8(basename($dest)), (int)filesize($dest), 'manual', hash_file('sha256', $dest), (int)$me['id']]);
             audit('backup_upload', 'system', null, 'Backup carregado: ' . basename($dest));
             flash('ok', 'Ficheiro carregado. Pode agora restaurá-lo a partir da lista.');
             redirect('backup.php');
