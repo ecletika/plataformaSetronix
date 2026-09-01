@@ -31,9 +31,17 @@ deployment:
     - /bin/mkdir -p $DEPLOYPATH/storage/apps
     - /bin/chmod 750 $DEPLOYPATH/storage $DEPLOYPATH/storage/apps
 
-    # 4. Depois da instalação estar concluída, o assistente deixa de ser
+    # 4. Restos da versão anterior (módulo de planeamento de obras). O cp
+    #    acima sobrepõe ficheiros mas nunca apaga os que deixaram de
+    #    existir no repositório — sem esta limpeza continuariam acessíveis
+    #    no servidor e a dar erro 500, por já não terem tabelas na BD.
+    - /bin/rm -rf $DEPLOYPATH/api $DEPLOYPATH/legacy
+    - /bin/rm -f $DEPLOYPATH/admin/lists.php $DEPLOYPATH/admin/import.php $DEPLOYPATH/admin/backup.php
+    - /bin/rm -f $DEPLOYPATH/lib/lists.php $DEPLOYPATH/lib/backup.php $DEPLOYPATH/lib/xlsx.php
+
+    # 5. Depois da instalação estar concluída, o assistente deixa de ser
     #    publicado — para não voltar a aparecer a cada deploy.
     - /bin/sh -c 'if [ -f "$DEPLOYPATH/storage/.installed" ]; then rm -rf "$DEPLOYPATH/install"; fi'
 
-    # 5. Protege o ficheiro de configuração, se já tiver sido criado.
+    # 6. Protege o ficheiro de configuração, se já tiver sido criado.
     - /bin/sh -c 'if [ -f "$DEPLOYPATH/config.php" ]; then chmod 640 "$DEPLOYPATH/config.php"; fi'
