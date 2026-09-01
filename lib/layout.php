@@ -76,6 +76,10 @@ tbody tr:hover{background:#f8fafc}
 code,.mono{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
 .secret{font-family:ui-monospace,Consolas,monospace;font-size:19px;letter-spacing:2px;background:#f8fafc;
   border:1px dashed #94a3b8;border-radius:8px;padding:14px;text-align:center;user-select:all;word-break:break-all}
+.applist-check{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 16px;
+  border:1px solid var(--line);border-radius:8px;padding:12px;max-height:260px;overflow:auto}
+.applist-check label{display:flex;align-items:center;gap:8px;margin:0;padding:3px 0;font-size:13px;color:var(--ink)}
+.applist-check input{width:auto;margin:0}
 .qr{display:flex;justify-content:center;margin:14px 0}
 .qr svg{border:1px solid var(--line);border-radius:8px;max-width:100%;height:auto}
 .codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-family:ui-monospace,Consolas,monospace}

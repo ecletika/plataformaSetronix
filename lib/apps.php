@@ -73,6 +73,93 @@ function app_current_version(array $app): ?array
     return q_one('SELECT * FROM app_versions WHERE id = ?', [(int)$app['current_version_id']]);
 }
 
+// ---------------------------------------------------------------------
+// Quem vê o quê
+//
+// Uma aplicação sem ninguém atribuído é visível para todos. Basta atribuir
+// uma pessoa para que passe a ser só dela (e de quem for acrescentado).
+// ---------------------------------------------------------------------
+
+/** Ids dos utilizadores com acesso explícito a uma aplicação. */
+function app_user_ids(int $appId): array
+{
+    return array_map('intval', array_column(
+        q_all('SELECT user_id FROM user_apps WHERE app_id = ?', [$appId]),
+        'user_id'
+    ));
+}
+
+/** Ids das aplicações atribuídas explicitamente a um utilizador. */
+function user_app_ids(int $userId): array
+{
+    return array_map('intval', array_column(
+        q_all('SELECT app_id FROM user_apps WHERE user_id = ?', [$userId]),
+        'app_id'
+    ));
+}
+
+/** Define a lista de utilizadores com acesso a uma aplicação. */
+function app_set_users(int $appId, array $userIds): void
+{
+    q('DELETE FROM user_apps WHERE app_id = ?', [$appId]);
+    foreach (array_unique(array_map('intval', $userIds)) as $uid) {
+        if ($uid > 0) {
+            q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
+              [$uid, $appId, current_user()['id'] ?? null]);
+        }
+    }
+}
+
+/** Define a lista de aplicações atribuídas a um utilizador. */
+function user_set_apps(int $userId, array $appIds): void
+{
+    q('DELETE FROM user_apps WHERE user_id = ?', [$userId]);
+    foreach (array_unique(array_map('intval', $appIds)) as $aid) {
+        if ($aid > 0) {
+            q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
+              [$userId, $aid, current_user()['id'] ?? null]);
+        }
+    }
+}
+
+/**
+ * Aplicações que um utilizador pode abrir.
+ *
+ * Quem gere aplicações vê sempre todas — de outra forma um administrador
+ * podia deixar-se a si próprio de fora e ficar sem acesso ao que publicou.
+ */
+function apps_for_user(int $userId, bool $seesAll = false): array
+{
+    if ($seesAll) {
+        return apps_all(true);
+    }
+    return q_all(
+        'SELECT a.* FROM apps a
+          WHERE a.is_active = 1
+            AND (NOT EXISTS (SELECT 1 FROM user_apps ua WHERE ua.app_id = a.id)
+                 OR EXISTS (SELECT 1 FROM user_apps ua WHERE ua.app_id = a.id AND ua.user_id = ?))
+          ORDER BY a.sort_order, a.name',
+        [$userId]
+    );
+}
+
+/** Este utilizador pode abrir esta aplicação? */
+function user_can_open_app(int $userId, array $app, bool $seesAll = false): bool
+{
+    if ((int)$app['is_active'] !== 1) {
+        return false;
+    }
+    if ($seesAll) {
+        return true;
+    }
+    $restricted = (int)q_val('SELECT COUNT(*) FROM user_apps WHERE app_id = ?', [(int)$app['id']]);
+    if ($restricted === 0) {
+        return true;
+    }
+    return (int)q_val('SELECT COUNT(*) FROM user_apps WHERE app_id = ? AND user_id = ?',
+                      [(int)$app['id'], $userId]) > 0;
+}
+
 /** Identificador curto e único para a aplicação (usado no URL). */
 function app_make_slug(string $name, ?int $ignoreId = null): string
 {

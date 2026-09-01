@@ -124,6 +124,23 @@ CREATE TABLE IF NOT EXISTS app_versions (
   CONSTRAINT fk_app_versions_app FOREIGN KEY (app_id) REFERENCES apps(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Quem pode abrir cada aplicacao.
+--
+-- Sem qualquer linha para uma aplicacao, ela e visivel para todos os
+-- utilizadores. Assim que existir pelo menos uma linha, so os utilizadores
+-- ai indicados a veem. Para esconder de toda a gente usa-se antes o
+-- apps.is_active = 0.
+CREATE TABLE IF NOT EXISTS user_apps (
+  user_id     INT UNSIGNED NOT NULL,
+  app_id      INT UNSIGNED NOT NULL,
+  granted_by  INT UNSIGNED NULL,
+  granted_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, app_id),
+  KEY idx_user_apps_app (app_id),
+  CONSTRAINT fk_user_apps_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_apps_app  FOREIGN KEY (app_id)  REFERENCES apps(id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------
 -- 3. AUDITORIA (log de alteracoes)
 -- ---------------------------------------------------------------------

@@ -12,7 +12,7 @@ require_once __DIR__ . '/lib/apps.php';
 require_once __DIR__ . '/lib/layout.php';
 
 $user = require_login('view');
-$apps = apps_all(true);
+$apps = apps_for_user((int)$user['id'], can('apps.manage'));
 
 layout_head('Aplicações', 'app');
 ?>

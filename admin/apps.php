@@ -66,6 +66,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('apps.php?id=' . $id);
         }
 
+        if ($action === 'access') {
+            app_set_users($id, (array)($_POST['users'] ?? []));
+            $n = count(app_user_ids($id));
+            audit('update', 'app', $id, 'Acesso a ' . $app['name'] . ': '
+                  . ($n === 0 ? 'todos os utilizadores' : $n . ' utilizador(es)'));
+            flash('ok', $n === 0
+                ? 'A aplicação passa a estar visível para todos os utilizadores.'
+                : 'Acesso reservado a ' . $n . ' utilizador(es).');
+            redirect('apps.php?id=' . $id);
+        }
+
         if ($action === 'rollback') {
             $v = app_rollback($id, (int)($_POST['version_id'] ?? 0));
             audit('update', 'app', $id, 'Reposta a versão ' . (int)$v['version'] . ' de ' . $app['name']);
@@ -141,6 +152,12 @@ layout_head('Aplicações', 'app', '../');
             <?= (int)$a['is_active'] === 1
                 ? '<span class="tag on">ativa</span>'
                 : '<span class="tag off">oculta</span>' ?>
+            <?php $nAcesso = count(app_user_ids((int)$a['id'])); ?>
+            <?php if ($nAcesso): ?>
+              <br><span class="tag gestor" title="Reservada a utilizadores escolhidos"><?= $nAcesso ?> utilizador(es)</span>
+            <?php else: ?>
+              <br><span class="tag leitor">todos</span>
+            <?php endif; ?>
           </td>
           <td class="actions">
             <a class="btn" href="../app.php?id=<?= (int)$a['id'] ?>">Abrir</a>
@@ -222,6 +239,44 @@ layout_head('Aplicações', 'app', '../');
       </tbody>
     </table>
   </div>
+
+  <h3>Quem pode abrir</h3>
+  <?php
+    $comAcesso = $failed === 'access'
+        ? array_map('intval', (array)($_POST['users'] ?? []))
+        : app_user_ids((int)$open['id']);
+    $utilizadores = q_all('SELECT id, username, full_name, role, is_active
+                             FROM users ORDER BY is_active DESC, full_name');
+  ?>
+  <form method="post">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="access">
+    <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
+    <p class="muted" style="margin:0 0 8px">
+      <?php if (!$comAcesso): ?>
+        Neste momento <b>todos os utilizadores</b> veem esta aplicação.
+        Assinale pessoas para a reservar só a elas.
+      <?php else: ?>
+        Reservada a <b><?= count($comAcesso) ?></b> utilizador(es).
+        Desmarque todos para a voltar a abrir a toda a gente.
+      <?php endif; ?>
+      Quem gere aplicações vê sempre todas.
+    </p>
+    <div class="applist-check">
+      <?php foreach ($utilizadores as $u): ?>
+        <label>
+          <input type="checkbox" name="users[]" value="<?= (int)$u['id'] ?>"
+                 <?= in_array((int)$u['id'], $comAcesso, true) ? 'checked' : '' ?>>
+          <?= e($u['full_name']) ?>
+          <span class="muted mono"><?= e($u['username']) ?></span>
+          <?php if ((int)$u['is_active'] !== 1): ?><span class="tag off">inativo</span><?php endif; ?>
+        </label>
+      <?php endforeach; ?>
+    </div>
+    <div class="actions" style="margin-top:10px">
+      <button class="primary" type="submit">Guardar acesso</button>
+    </div>
+  </form>
 
   <h3>Dados da aplicação</h3>
   <form method="post">

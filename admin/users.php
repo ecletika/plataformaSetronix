@@ -3,6 +3,7 @@
 
 define('URL_PREFIX', '../');
 require_once __DIR__ . '/../lib/bootstrap.php';
+require_once __DIR__ . '/../lib/apps.php';
 require_once __DIR__ . '/../lib/layout.php';
 
 $me = require_login('users.manage');
@@ -67,6 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     [$username, $email, $fullName, password_hash($pw, PASSWORD_DEFAULT), $role, $active, (int)$me['id']]
                 );
                 $newId = (int)db()->lastInsertId();
+                if (isset($_POST['apps_submitted'])) {
+                    user_set_apps($newId, (array)($_POST['apps'] ?? []));
+                }
                 audit('create', 'user', $newId, 'Utilizador criado: ' . $username, null,
                       ['username' => $username, 'email' => $email, 'role' => $role, 'is_active' => $active]);
                 $generatedPassword = ['username' => $username, 'password' => $pw];
@@ -84,6 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 q('UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, is_active = ? WHERE id = ?',
                   [$username, $email, $fullName, $role, $active, $id]);
+                if (isset($_POST['apps_submitted'])) {
+                    user_set_apps($id, (array)($_POST['apps'] ?? []));
+                }
                 audit('update', 'user', $id, 'Utilizador atualizado: ' . $username,
                       audit_scrub($target),
                       ['username' => $username, 'email' => $email, 'full_name' => $fullName,
@@ -151,7 +158,19 @@ $form = [
     'is_active' => $repost
         ? isset($_POST['is_active'])
         : (!$editing || (int)$editing['is_active'] === 1),
+    'apps' => $repost
+        ? array_map('intval', (array)($_POST['apps'] ?? []))
+        : ($editing ? user_app_ids((int)$editing['id']) : []),
 ];
+
+$todasApps = apps_all(false);
+
+// Quantos utilizadores estao atribuidos a cada aplicacao: sem nenhum, a
+// aplicacao e visivel para todos.
+$restritas = [];
+foreach (q_all('SELECT app_id, COUNT(*) AS n FROM user_apps GROUP BY app_id') as $r) {
+    $restritas[(int)$r['app_id']] = (int)$r['n'];
+}
 
 $users = q_all('SELECT * FROM users ORDER BY is_active DESC, role, username');
 
@@ -215,6 +234,32 @@ layout_head('Utilizadores', 'app', '../');
         Conta ativa
       </label>
     </div>
+    <?php if ($todasApps): ?>
+      <h3>Aplicações a que tem acesso</h3>
+      <input type="hidden" name="apps_submitted" value="1">
+      <p class="muted" style="margin:0 0 8px">
+        Sem nada assinalado, o utilizador vê as aplicações que estão abertas a toda a gente.
+        Assinale para lhe dar acesso a uma aplicação reservada.
+      </p>
+      <div class="applist-check">
+        <?php foreach ($todasApps as $a): ?>
+          <label>
+            <input type="checkbox" name="apps[]" value="<?= (int)$a['id'] ?>"
+                   <?= in_array((int)$a['id'], $form['apps'], true) ? 'checked' : '' ?>>
+            <?= e($a['name']) ?>
+            <?php if (empty($restritas[(int)$a['id']])): ?>
+              <span class="tag leitor">todos</span>
+            <?php else: ?>
+              <span class="tag gestor">reservada</span>
+            <?php endif; ?>
+            <?php if ((int)$a['is_active'] !== 1): ?>
+              <span class="tag off">oculta</span>
+            <?php endif; ?>
+          </label>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
     <p class="muted">
       <b>Permissões:</b>
       Administrador — tudo, incluindo contas e log de alterações ·

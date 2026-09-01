@@ -45,6 +45,11 @@ A v1 tinha o módulo de planeamento de obras embutido. Para passar à v2:
 2. Correr `install/schema.sql` — cria `apps` e `app_versions`.
 3. Correr `install/migrar_v2.sql` — remove as tabelas que deixaram de ser usadas.
 
+O `install/schema.sql` só cria o que ainda não existe, por isso pode ser
+executado outra vez sempre que uma atualização acrescentar tabelas — foi o caso
+da tabela `user_apps`, que guarda quem pode abrir cada aplicação. Se faltar
+alguma, a plataforma diz qual é em vez de devolver um erro em branco.
+
 As contas, o MFA e o log de alterações mantêm-se intactos.
 
 ### Cópias de segurança
@@ -75,6 +80,7 @@ lib/db.php             PDO e helpers de query
 lib/auth.php           Autenticação, MFA, permissões
 lib/apps.php           Aplicações e versões
 lib/totp.php           TOTP (RFC 6238) e códigos de recuperação
+lib/qrcode.php         Gerador de códigos QR (para a ativação do MFA)
 lib/audit.php          Log de alterações
 lib/helpers.php        Utilitários (CSRF, cifra, escape, ...)
 lib/layout.php         Cabeçalho, rodapé e estilos partilhados
@@ -101,6 +107,22 @@ problema, basta **Repor** a anterior.
 
 Para **esconder sem apagar**, desmarque "Visível para os utilizadores".
 
+### Quem vê cada aplicação
+
+Por omissão, uma aplicação publicada aparece a **todos** os utilizadores.
+
+Para a reservar a algumas pessoas, abra-a em *Gerir* e, em **Quem pode abrir**,
+assinale quem lhe deve ter acesso. A partir do momento em que houver alguém
+assinalado, só essas pessoas a veem — e quem tentar abrir o endereço direto
+recebe um "não encontrada". Desmarcar toda a gente volta a abri-la a todos.
+
+A mesma atribuição pode ser feita pelo lado do utilizador, em
+**Administração → Utilizadores → Editar**, onde a lista de aplicações aparece
+com o que cada conta pode abrir.
+
+Quem tem o perfil *Administrador* ou *Gestor de aplicações* vê sempre todas as
+aplicações — de outra forma seria possível ficar sem acesso ao que se publicou.
+
 Limite por ficheiro: 8 MB (configurável em `config.php`, chave `apps.max_mb`;
 o servidor também tem de aceitar o upload — ver `upload_max_filesize`).
 
@@ -108,7 +130,7 @@ o servidor também tem de aceitar o upload — ver `upload_max_filesize`).
 
 | Perfil | Pode |
 |---|---|
-| **Administrador** | tudo: contas, aplicações, log de alterações |
+| **Administrador** | tudo: contas, aplicações, acessos, log de alterações |
 | **Gestor de aplicações** | abrir aplicações; enviar, substituir e remover aplicações |
 | **Utilizador** | abrir as aplicações publicadas |
 | **Consulta** | abrir as aplicações publicadas |
