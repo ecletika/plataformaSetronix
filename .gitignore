@@ -11,6 +11,13 @@ storage/.installed
 .claude-flow/
 .claude/
 
+# A plataforma nao usa Node. Se alguem correr um npm install aqui por
+# engano, o node_modules nao pode entrar no repositorio -- o deploy do
+# cPanel copia tudo o que estiver na pasta para o servidor.
+node_modules/
+package.json
+package-lock.json
+
 # Sistema
 .DS_Store
 Thumbs.db
