@@ -112,13 +112,19 @@ Para **esconder sem apagar**, desmarque "Visível para os utilizadores".
 Por omissão, uma aplicação publicada aparece a **todos** os utilizadores.
 
 Para a reservar a algumas pessoas, abra-a em *Gerir* e, em **Quem pode abrir**,
-assinale quem lhe deve ter acesso. A partir do momento em que houver alguém
-assinalado, só essas pessoas a veem — e quem tentar abrir o endereço direto
-recebe um "não encontrada". Desmarcar toda a gente volta a abri-la a todos.
+passe-as para a coluna da direita. A partir do momento em que houver alguém à
+direita, só essas pessoas a veem — e quem tentar abrir o endereço direto recebe
+um "não encontrada". Esvaziar a coluna volta a abri-la a todos.
 
 A mesma atribuição pode ser feita pelo lado do utilizador, em
-**Administração → Utilizadores → Editar**, onde a lista de aplicações aparece
-com o que cada conta pode abrir.
+**Administração → Utilizadores → Editar**. Aí a coluna da direita — *Vê estas
+aplicações* — é literalmente o que a pessoa encontra ao entrar, incluindo as
+aplicações abertas a toda a gente, que aparecem fixas e não se retiram ali.
+
+> **A confusão mais comum:** dar acesso a uma aplicação reservada não retira as
+> outras. Se a pessoa continua a ver uma aplicação que não lhe atribuiu, é porque
+> essa aplicação não tem ninguém atribuído e continua aberta a todos. Reserve-a
+> também, escolhendo quem a pode ver.
 
 Quem tem o perfil *Administrador* ou *Gestor de aplicações* vê sempre todas as
 aplicações — de outra forma seria possível ficar sem acesso ao que se publicou.

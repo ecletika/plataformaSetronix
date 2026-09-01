@@ -262,17 +262,28 @@ layout_head('Aplicações', 'app', '../');
       <?php endif; ?>
       Quem gere aplicações vê sempre todas.
     </p>
-    <div class="applist-check">
-      <?php foreach ($utilizadores as $u): ?>
-        <label>
-          <input type="checkbox" name="users[]" value="<?= (int)$u['id'] ?>"
-                 <?= in_array((int)$u['id'], $comAcesso, true) ? 'checked' : '' ?>>
-          <?= e($u['full_name']) ?>
-          <span class="muted mono"><?= e($u['username']) ?></span>
-          <?php if ((int)$u['is_active'] !== 1): ?><span class="tag off">inativo</span><?php endif; ?>
-        </label>
-      <?php endforeach; ?>
-    </div>
+    <?php
+      $itens = [];
+      foreach ($utilizadores as $u) {
+          $itens[] = [
+              'id'      => (int)$u['id'],
+              'title'   => $u['full_name'],
+              'sub'     => $u['username'] . ' · ' . (ROLES[$u['role']] ?? $u['role']),
+              'mark'    => mb_strtoupper(mb_substr($u['full_name'], 0, 1)),
+              'granted' => in_array((int)$u['id'], $comAcesso, true),
+              'note'    => (int)$u['is_active'] === 1 ? '' : 'inativo',
+          ];
+      }
+      transfer_list('users', $itens, [
+          'left'        => 'Não vê esta aplicação',
+          'right'       => 'Pode abrir',
+          'empty_left'  => 'Toda a gente tem acesso.',
+          'empty_right' => 'Ninguém escolhido: a aplicação está aberta a todos.',
+          'hint'        => 'Com a coluna da direita vazia, a aplicação fica visível para '
+                         . '<b>todos os utilizadores</b>. Assim que lá estiver alguém, passa a '
+                         . 'ser só dessas pessoas. Quem gere aplicações vê-a sempre.',
+      ]);
+    ?>
     <div class="actions" style="margin-top:10px">
       <button class="primary" type="submit">Guardar acesso</button>
     </div>

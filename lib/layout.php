@@ -76,10 +76,37 @@ tbody tr:hover{background:#f8fafc}
 code,.mono{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
 .secret{font-family:ui-monospace,Consolas,monospace;font-size:19px;letter-spacing:2px;background:#f8fafc;
   border:1px dashed #94a3b8;border-radius:8px;padding:14px;text-align:center;user-select:all;word-break:break-all}
-.applist-check{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 16px;
-  border:1px solid var(--line);border-radius:8px;padding:12px;max-height:260px;overflow:auto}
-.applist-check label{display:flex;align-items:center;gap:8px;margin:0;padding:3px 0;font-size:13px;color:var(--ink)}
-.applist-check input{width:auto;margin:0}
+/* Dois painéis de transferência (ver transfer_list()) */
+.tr{display:grid;grid-template-columns:1fr 108px 1fr;gap:12px;align-items:start}
+.tr-panel{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;min-width:0}
+.tr-head{padding:9px 12px;border-bottom:1px solid var(--line);background:#f8fafc;display:flex;
+  justify-content:space-between;gap:8px;font-size:11.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted)}
+.tr-head b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.tr-search{padding:9px 10px;border-bottom:1px solid var(--line)}
+.tr-search input{margin:0;padding:7px 10px;font-size:13px}
+.tr-list{list-style:none;margin:0;padding:6px;min-height:150px;max-height:320px;overflow:auto;
+  display:flex;flex-direction:column;gap:3px}
+.tr-item{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;margin:0;
+  font-size:13.5px;color:var(--ink);cursor:pointer;transition:background .15s ease}
+.tr-item:hover{background:#eff6ff}
+.tr-item input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.tr-item input:focus-visible + .tr-mark{outline:2px solid var(--accent);outline-offset:2px}
+.tr-mark{width:26px;height:26px;border-radius:7px;background:#eff6ff;color:var(--accent);flex:none;
+  display:grid;place-items:center;font-weight:700;font-size:11px}
+.tr-txt{min-width:0;flex:1}
+.tr-txt b{display:block;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-txt small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-item.locked{cursor:default;background:#f8fafc}
+.tr-item.locked:hover{background:#f8fafc}
+.tr-empty{color:var(--muted);font-size:12.5px;padding:16px 10px;text-align:center}
+.tr-mid{display:flex;flex-direction:column;gap:8px;align-items:center;padding-top:56px}
+.tr-mid .btn{width:100%;text-align:center;font-size:12.5px;padding:7px 6px}
+.tr-hint{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+@media (max-width:820px){
+  .tr{grid-template-columns:1fr}
+  .tr-mid{flex-direction:row;padding-top:0}
+}
 .qr{display:flex;justify-content:center;margin:14px 0}
 .qr svg{border:1px solid var(--line);border-radius:8px;max-width:100%;height:auto}
 .codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-family:ui-monospace,Consolas,monospace}
@@ -129,6 +156,122 @@ function layout_foot(): void
     global $CONFIG;
     echo '<footer class="foot">' . e($CONFIG['app']['org'] ?? 'Setronix')
        . ' · ' . e($CONFIG['app']['name'] ?? '') . ' · ' . date('Y') . '</footer></body></html>';
+}
+
+/**
+ * Dois painéis de transferência: à esquerda o que não tem acesso, à direita
+ * o que tem. Carregar num item passa-o para o outro lado.
+ *
+ * A coluna da direita é, literalmente, o que a pessoa vai ver — por isso os
+ * itens fixos (aplicações abertas a toda a gente) aparecem lá também, sem
+ * possibilidade de os mover. Foi a falta deles que levou a pensar que uma
+ * atribuição tinha dado acesso a mais do que o esperado.
+ *
+ * Sem JavaScript o item não muda de painel, mas a caixa de verificação
+ * escondida continua a alternar: o formulário grava na mesma.
+ *
+ * @param string $field  nome do campo do formulário (ex.: 'apps')
+ * @param array  $items  cada um: id, title, sub, mark, granted, locked, note
+ * @param array  $labels left, right, empty_left, empty_right, hint
+ */
+function transfer_list(string $field, array $items, array $labels): void
+{
+    $id = 'tr-' . preg_replace('/[^a-z0-9]/i', '', $field);
+
+    $render = static function (array $it) use ($field): void {
+        $locked = !empty($it['locked']);
+        echo '<li>';
+        echo '<label class="tr-item' . ($locked ? ' locked' : '') . '">';
+        if (!$locked) {
+            echo '<input type="checkbox" name="' . e($field) . '[]" value="' . (int)$it['id'] . '"'
+               . (!empty($it['granted']) ? ' checked' : '') . '>';
+        }
+        echo '<span class="tr-mark">' . e((string)($it['mark'] ?? '?')) . '</span>';
+        echo '<span class="tr-txt"><b>' . e((string)$it['title']) . '</b>';
+        if (!empty($it['sub'])) {
+            echo '<small>' . e((string)$it['sub']) . '</small>';
+        }
+        echo '</span>';
+        if (!empty($it['note'])) {
+            echo '<span class="tag leitor">' . e((string)$it['note']) . '</span>';
+        }
+        echo '</label></li>';
+    };
+
+    $left  = array_filter($items, static fn($i) => empty($i['granted']) && empty($i['locked']));
+    $right = array_filter($items, static fn($i) => !empty($i['granted']) || !empty($i['locked']));
+    ?>
+    <div class="tr" id="<?= e($id) ?>">
+      <div class="tr-panel" data-side="left">
+        <div class="tr-head"><span><?= e($labels['left']) ?></span><b class="tr-n">0</b></div>
+        <div class="tr-search">
+          <input type="text" placeholder="Procurar…" aria-label="Procurar em <?= e($labels['left']) ?>">
+        </div>
+        <ul class="tr-list">
+          <?php foreach ($left as $it) { $render($it); } ?>
+        </ul>
+        <p class="tr-empty" hidden><?= e($labels['empty_left']) ?></p>
+      </div>
+
+      <div class="tr-mid">
+        <span class="muted" style="font-size:12px;text-align:center">
+          Carregue num<br>item para o<br>passar ao lado
+        </span>
+      </div>
+
+      <div class="tr-panel" data-side="right">
+        <div class="tr-head"><span><?= e($labels['right']) ?></span><b class="tr-n">0</b></div>
+        <div class="tr-search">
+          <input type="text" placeholder="Procurar…" aria-label="Procurar em <?= e($labels['right']) ?>">
+        </div>
+        <ul class="tr-list">
+          <?php foreach ($right as $it) { $render($it); } ?>
+        </ul>
+        <p class="tr-empty" hidden><?= e($labels['empty_right']) ?></p>
+      </div>
+    </div>
+    <?php if (!empty($labels['hint'])): ?>
+      <p class="tr-hint"><?= $labels['hint'] ?></p>
+    <?php endif; ?>
+    <script>
+    (function () {
+      var root = document.getElementById(<?= json_encode($id) ?>);
+      if (!root) { return; }
+      var panels = {};
+      root.querySelectorAll('.tr-panel').forEach(function (p) { panels[p.dataset.side] = p; });
+
+      function refresh() {
+        Object.keys(panels).forEach(function (side) {
+          var p = panels[side];
+          var items = p.querySelectorAll('.tr-list > li');
+          p.querySelector('.tr-n').textContent = items.length;
+          p.querySelector('.tr-empty').hidden = items.length > 0;
+        });
+      }
+
+      root.addEventListener('change', function (ev) {
+        var box = ev.target;
+        if (!box.matches('.tr-item input')) { return; }
+        var li = box.closest('li');
+        var to = box.checked ? 'right' : 'left';
+        panels[to].querySelector('.tr-list').appendChild(li);
+        refresh();
+        box.focus();
+      });
+
+      root.addEventListener('input', function (ev) {
+        var field = ev.target;
+        if (!field.matches('.tr-search input')) { return; }
+        var termo = field.value.trim().toLowerCase();
+        field.closest('.tr-panel').querySelectorAll('.tr-list > li').forEach(function (li) {
+          li.hidden = termo !== '' && li.textContent.toLowerCase().indexOf(termo) === -1;
+        });
+      });
+
+      refresh();
+    })();
+    </script>
+    <?php
 }
 
 /** Barra de navegação secundária da área de administração. */

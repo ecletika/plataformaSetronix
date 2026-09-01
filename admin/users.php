@@ -235,29 +235,34 @@ layout_head('Utilizadores', 'app', '../');
       </label>
     </div>
     <?php if ($todasApps): ?>
-      <h3>Aplicações a que tem acesso</h3>
+      <h3>Acesso às aplicações</h3>
       <input type="hidden" name="apps_submitted" value="1">
-      <p class="muted" style="margin:0 0 8px">
-        Sem nada assinalado, o utilizador vê as aplicações que estão abertas a toda a gente.
-        Assinale para lhe dar acesso a uma aplicação reservada.
-      </p>
-      <div class="applist-check">
-        <?php foreach ($todasApps as $a): ?>
-          <label>
-            <input type="checkbox" name="apps[]" value="<?= (int)$a['id'] ?>"
-                   <?= in_array((int)$a['id'], $form['apps'], true) ? 'checked' : '' ?>>
-            <?= e($a['name']) ?>
-            <?php if (empty($restritas[(int)$a['id']])): ?>
-              <span class="tag leitor">todos</span>
-            <?php else: ?>
-              <span class="tag gestor">reservada</span>
-            <?php endif; ?>
-            <?php if ((int)$a['is_active'] !== 1): ?>
-              <span class="tag off">oculta</span>
-            <?php endif; ?>
-          </label>
-        <?php endforeach; ?>
-      </div>
+      <?php
+        $itens = [];
+        foreach ($todasApps as $a) {
+            $aberta = empty($restritas[(int)$a['id']]);
+            $itens[] = [
+                'id'      => (int)$a['id'],
+                'title'   => $a['name'],
+                'sub'     => (string)$a['description'],
+                'mark'    => mb_strtoupper(mb_substr($a['name'], 0, 1)),
+                'granted' => in_array((int)$a['id'], $form['apps'], true),
+                // Abertas a toda a gente aparecem à direita, fixas: quem está
+                // a ver esta página precisa de saber que a pessoa também as vê.
+                'locked'  => $aberta,
+                'note'    => $aberta ? 'aberta a todos' : '',
+            ];
+        }
+        transfer_list('apps', $itens, [
+            'left'        => 'Sem acesso',
+            'right'       => 'Vê estas aplicações',
+            'empty_left'  => 'Nada por atribuir.',
+            'empty_right' => 'Este utilizador não vê nenhuma aplicação.',
+            'hint'        => 'As aplicações marcadas <b>aberta a todos</b> não se retiram aqui: '
+                           . 'estão assim porque ninguém lhes foi atribuído. Para as reservar, '
+                           . 'abra a aplicação em <a href="apps.php">Aplicações</a> e escolha quem a pode ver.',
+        ]);
+      ?>
     <?php endif; ?>
 
     <p class="muted">
