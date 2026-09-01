@@ -146,7 +146,28 @@ externo para se apresentar. Para o trocar, substitua o ficheiro mantendo o nome.
 Sobre a barra escura é apresentado numa placa branca, porque o texto do logótipo
 é vermelho e não teria contraste suficiente sobre o azul-escuro.
 
-## 6. Perfis e permissões
+## 6. Segurança: MFA e palavras-passe
+
+Em **Administração → Resumo → Segurança**:
+
+| Definição | O que faz |
+|---|---|
+| Exigir MFA a todos | Ligado, ninguém entra sem associar uma aplicação autenticadora. Desligado, cada pessoa decide em *A minha conta*. |
+| Comprimento mínimo | Caracteres exigidos numa palavra-passe nova. Além do comprimento, é sempre exigida pelo menos uma letra e um algarismo. |
+
+Desligar a exigência **não retira o MFA a ninguém**: quem já tem um dispositivo
+associado continua a ter de introduzir o código. Também limpa a marca individual
+de todas as contas — de outra forma o interruptor não teria efeito, porque as
+contas são criadas com essa marca ligada. Com a exigência desligada, aparece na
+ficha de cada utilizador uma caixa **Exigir MFA a esta conta**, para o impor a
+quem precisa (por exemplo, aos administradores).
+
+> Duas notas honestas, para ficarem escritas: uma palavra-passe de 6 caracteres
+> quebra-se em minutos se a base de dados vazar, e é precisamente o MFA que
+> mantém a conta fechada quando isso acontece. Ambas as definições existem para
+> serem apertadas mais tarde sem alterar código.
+
+## 7. Perfis e permissões
 
 | Perfil | Pode |
 |---|---|
@@ -155,7 +176,7 @@ Sobre a barra escura é apresentado numa placa branca, porque o texto do logóti
 | **Utilizador** | abrir as aplicações publicadas |
 | **Consulta** | abrir as aplicações publicadas |
 
-## 7. Onde ficam os dados das aplicações
+## 8. Onde ficam os dados das aplicações
 
 A plataforma guarda o **ficheiro** da aplicação; **não** guarda os dados que a
 aplicação produz. Uma página HTML autónoma normalmente usa o `localStorage` do
@@ -165,7 +186,7 @@ não são partilhados entre pessoas e desaparecem se o browser for limpo.
 Para que os dados sejam centrais e partilhados, a aplicação tem de falar com um
 servidor. Isso é trabalho adicional, fora do âmbito desta casca.
 
-## 8. Nota de segurança
+## 9. Nota sobre o HTML enviado
 
 O ficheiro HTML enviado corre na mesma origem que a plataforma, com a sessão do
 utilizador iniciada. Isso é o que permite que o `localStorage` da aplicação

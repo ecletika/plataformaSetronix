@@ -65,7 +65,7 @@ layout_head('Alterar palavra-passe', $forced ? 'auth' : 'app');
         <input type="password" name="confirm" required autocomplete="new-password">
       </label>
       <p class="muted">
-        Mínimo <?= (int)($CONFIG['security']['password_min_length'] ?? 10) ?> caracteres,
+        Mínimo <?= password_min_length() ?> caracteres,
         com pelo menos uma letra e um algarismo.
       </p>
       <button class="primary" type="submit">Guardar</button>

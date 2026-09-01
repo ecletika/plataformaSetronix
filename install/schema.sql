@@ -175,10 +175,13 @@ CREATE TABLE IF NOT EXISTS settings (
   PRIMARY KEY (skey)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Nome mostrado no cabecalho e nos titulos. Alteravel em
--- Administracao -> Resumo, sem mexer no config.php.
+-- Politica alteravel em Administracao -> Resumo, sem mexer no config.php.
+--   mfa_enforce_all      1 = MFA obrigatorio a todos; 0 = cada um decide
+--   password_min_length  minimo de caracteres das palavras-passe
+--   app_name             nome mostrado no cabecalho e nos titulos
 INSERT INTO settings (skey, svalue) VALUES
   ('schema_version', '2'),
-  ('mfa_enforce_all', '1'),
-  ('app_name', 'Planeamento Setronix')
+  ('mfa_enforce_all', '0'),
+  ('app_name', 'Planeamento Setronix'),
+  ('password_min_length', '6')
 ON DUPLICATE KEY UPDATE svalue = svalue;

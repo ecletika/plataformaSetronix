@@ -16,7 +16,10 @@ require_once __DIR__ . '/lib/qrcode.php';
 if (empty($_SESSION['uid'])) {
     redirect('login.php');
 }
-if (!empty($_SESSION['mfa_passed'])) {
+// Com sessão completa só se entra aqui para activar o MFA de livre vontade
+// (a partir de "A minha conta"), e só quem ainda não o tem.
+$voluntario = !empty($_SESSION['mfa_passed']) && isset($_GET['ativar']);
+if (!empty($_SESSION['mfa_passed']) && !$voluntario) {
     redirect('index.php');
 }
 
@@ -30,6 +33,11 @@ $org      = $CONFIG['app']['org'] ?? 'Setronix';
 $window   = (int)($CONFIG['security']['totp_window'] ?? 1);
 $codeCount = (int)($CONFIG['security']['recovery_code_count'] ?? 10);
 $enrolled = (int)$user['mfa_enabled'] === 1 && !empty($user['mfa_secret']);
+if ($voluntario && $enrolled) {
+    redirect('perfil.php');
+}
+// Pode dispensar-se a activação? Só quando ninguém a exige a este utilizador.
+$opcional = !$enrolled && !mfa_required_for($user);
 
 $error = '';
 $showCodes = $_SESSION['show_recovery_codes'] ?? null;
@@ -45,9 +53,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = (string)($_POST['action'] ?? '');
 
+    if ($action === 'skip' && $opcional) {
+        unset($_SESSION['mfa_enroll_secret']);
+        if ($voluntario) {
+            redirect('perfil.php');
+        }
+        audit('login', 'user', $user['id'], 'Início de sessão sem MFA (não exigido)',
+              null, null, (int)$user['id'], $user['username']);
+        finish_login_and_redirect($user);
+    }
+
     if ($action === 'codes_ack') {
         // O utilizador confirmou que guardou os códigos de recuperação.
         unset($_SESSION['show_recovery_codes']);
+        if (!empty($_SESSION['mfa_passed'])) {
+            flash('ok', 'Verificação em duas etapas activada.');
+            redirect('perfil.php');
+        }
         auth_complete_login($user);
         $to = $_SESSION['redirect_after_login'] ?? 'index.php';
         unset($_SESSION['redirect_after_login']);
@@ -141,8 +163,15 @@ layout_head('Verificação em duas etapas', 'auth');
   <div class="card">
     <h2>Ativar a verificação em duas etapas</h2>
     <p class="muted">
-      Olá, <b><?= e($user['full_name']) ?></b>. Antes de entrar pela primeira vez é
-      necessário associar a conta a uma aplicação autenticadora
+      Olá, <b><?= e($user['full_name']) ?></b>.
+      <?php if ($opcional): ?>
+        Pode associar a conta a uma aplicação autenticadora para a proteger com um
+        segundo passo. Não é obrigatório, mas é a defesa que continua a valer se a
+        sua palavra-passe for descoberta.
+      <?php else: ?>
+        Antes de entrar pela primeira vez é necessário associar a conta a uma
+        aplicação autenticadora.
+      <?php endif; ?>
       (Google Authenticator, Microsoft Authenticator, Authy, 1Password, Bitwarden…).
     </p>
 
@@ -182,6 +211,19 @@ layout_head('Verificação em duas etapas', 'auth');
       </label>
       <button class="primary" type="submit" style="width:100%">Confirmar e ativar</button>
     </form>
+
+    <?php if ($opcional): ?>
+      <form method="post" style="margin-top:10px">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="skip">
+        <button type="submit" style="width:100%">
+          <?= $voluntario ? 'Cancelar' : 'Agora não — entrar sem ativar' ?>
+        </button>
+      </form>
+      <p class="muted" style="margin-top:10px;text-align:center">
+        Pode ativar mais tarde em <b>A minha conta</b>.
+      </p>
+    <?php endif; ?>
   </div>
 
 <?php else: ?>

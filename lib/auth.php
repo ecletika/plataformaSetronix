@@ -303,11 +303,83 @@ function mfa_recovery_codes_left(int $userId): int
                       [$userId]);
 }
 
+// ---------------------------------------------------------------------
+// Política de segurança
+//
+// Vive na tabela settings para poder ser alterada na administração, sem
+// mexer no config.php do servidor. Sem nada gravado, cai no config.
+// ---------------------------------------------------------------------
+
+/** Comprimento mínimo exigido às palavras-passe. */
+function password_min_length(): int
+{
+    global $CONFIG;
+    static $cache = null;
+
+    if ($cache !== null) {
+        return $cache;
+    }
+    $v = null;
+    try {
+        $v = setting('password_min_length');
+    } catch (Throwable $ex) {
+        $v = null;
+    }
+    if ($v === null || trim((string)$v) === '') {
+        $v = $CONFIG['security']['password_min_length'] ?? 6;
+    }
+    return $cache = max(4, min(64, (int)$v));
+}
+
+/** O MFA é exigido a todos os utilizadores? */
+function mfa_enforced_globally(): bool
+{
+    static $cache = null;
+
+    if ($cache !== null) {
+        return $cache;
+    }
+    try {
+        $v = setting('mfa_enforce_all', '1');
+    } catch (Throwable $ex) {
+        $v = '1';
+    }
+    return $cache = ((string)$v === '1');
+}
+
+/**
+ * Este utilizador tem de passar pelo MFA?
+ *
+ * Quem já associou um dispositivo verifica sempre: desligar a exigência
+ * geral não deve baixar a proteção de quem já a tinha activa.
+ */
+function mfa_required_for(array $user): bool
+{
+    if ((int)($user['mfa_enabled'] ?? 0) === 1) {
+        return true;
+    }
+    if (mfa_enforced_globally()) {
+        return true;
+    }
+    return (int)($user['mfa_required'] ?? 0) === 1;
+}
+
+/**
+ * Conclui o início de sessão e segue para o destino pretendido.
+ * Usado quando o MFA não é exigido e não há segundo passo a dar.
+ */
+function finish_login_and_redirect(array $user): void
+{
+    auth_complete_login($user);
+    $to = $_SESSION['redirect_after_login'] ?? 'index.php';
+    unset($_SESSION['redirect_after_login']);
+    redirect($to !== '' ? $to : 'index.php');
+}
+
 /** Valida a robustez de uma palavra-passe. Devolve lista de problemas. */
 function password_problems(string $pw): array
 {
-    global $CONFIG;
-    $min = (int)($CONFIG['security']['password_min_length'] ?? 10);
+    $min = password_min_length();
     $out = [];
     if (mb_strlen($pw) < $min) {
         $out[] = 'ter pelo menos ' . $min . ' caracteres';

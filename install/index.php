@@ -119,7 +119,7 @@ return [
         'max_failed_logins'      => 5,
         'lockout_minutes'        => 15,
         'ip_attempt_limit'       => 25,
-        'password_min_length'    => 10,
+        'password_min_length'    => 6,
         'totp_window'            => 1,
         'recovery_code_count'    => 10,
     ],
@@ -397,8 +397,8 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
         <label>E-mail <input type="email" name="email" required></label>
       </div>
       <label>Nome completo <input type="text" name="full_name" required></label>
-      <label>Palavra-passe <input type="password" name="password" required minlength="10"></label>
-      <p class="muted">Mínimo 10 caracteres, com pelo menos uma letra e um algarismo.</p>
+      <label>Palavra-passe <input type="password" name="password" required minlength="6"></label>
+      <p class="muted">Mínimo 6 caracteres, com pelo menos uma letra e um algarismo.</p>
       <button type="submit">Criar administrador</button>
     </form>
     <p class="muted" style="margin-top:12px">

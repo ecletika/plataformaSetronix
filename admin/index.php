@@ -13,6 +13,39 @@ if (!can('users.manage') && !can('apps.manage')) {
 }
 
 $erro = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'seguranca') {
+    csrf_check();
+    if (!can('users.manage')) {
+        http_response_code(403);
+        exit('Sem permissão.');
+    }
+    $exigirMfa = isset($_POST['mfa_enforce_all']) ? '1' : '0';
+    $minPw     = (int)($_POST['password_min_length'] ?? 6);
+
+    if ($minPw < 4 || $minPw > 64) {
+        $erro = 'O comprimento mínimo da palavra-passe tem de estar entre 4 e 64.';
+    } else {
+        $antesMfa = mfa_enforced_globally() ? '1' : '0';
+        setting_set('mfa_enforce_all', $exigirMfa);
+        setting_set('password_min_length', (string)$minPw);
+
+        // Ao deixar de ser exigido a todos, limpa-se a marca individual: de
+        // outra forma o interruptor não teria efeito nenhum, porque todas as
+        // contas são criadas com mfa_required = 1.
+        if ($antesMfa === '1' && $exigirMfa === '0') {
+            q('UPDATE users SET mfa_required = 0');
+        }
+        audit('update', 'system', null, 'Política de segurança alterada',
+              ['mfa_enforce_all' => $antesMfa],
+              ['mfa_enforce_all' => $exigirMfa, 'password_min_length' => $minPw]);
+        flash('ok', $exigirMfa === '1'
+            ? 'O MFA passa a ser exigido a todos os utilizadores.'
+            : 'O MFA passa a ser opcional. Quem já o tem activo continua a usá-lo.');
+        redirect('index.php');
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'nome') {
     csrf_check();
     if (!can('users.manage')) {
@@ -65,6 +98,37 @@ layout_head('Administração', 'app', '../');
     <label style="flex:1;min-width:240px;max-width:420px;margin:0">Nome da plataforma
       <input type="text" name="app_name" maxlength="120" required value="<?= e(app_name()) ?>">
     </label>
+    <button class="primary" type="submit">Guardar</button>
+  </form>
+</div>
+<?php endif; ?>
+
+<?php if (can('users.manage')): ?>
+<div class="card">
+  <h2>Segurança</h2>
+  <form method="post">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="seguranca">
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px">
+      <input type="checkbox" name="mfa_enforce_all" style="width:auto;margin:3px 0 0"
+             <?= mfa_enforced_globally() ? 'checked' : '' ?>>
+      <span>
+        <b>Exigir verificação em duas etapas a todos</b><br>
+        <span class="muted">
+          Desligado, cada pessoa decide se a activa em "A minha conta". Quem já a tem
+          associada continua a ter de introduzir o código — desligar isto não retira
+          o MFA a ninguém.
+        </span>
+      </span>
+    </label>
+    <label style="max-width:320px">Comprimento mínimo da palavra-passe
+      <input type="number" name="password_min_length" min="4" max="64"
+             value="<?= (int)password_min_length() ?>">
+    </label>
+    <p class="muted" style="margin:-4px 0 14px">
+      Aplica-se às palavras-passe criadas ou alteradas a partir de agora. Abaixo de 8
+      caracteres, uma palavra-passe descoberta numa fuga de dados quebra-se depressa.
+    </p>
     <button class="primary" type="submit">Guardar</button>
   </form>
 </div>

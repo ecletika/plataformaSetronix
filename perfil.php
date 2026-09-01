@@ -111,6 +111,12 @@ layout_head('A minha conta');
 <div class="card">
   <h2>Verificação em duas etapas (MFA)</h2>
   <p class="muted">
+    <?php if ((int)$user['mfa_enabled'] !== 1): ?>
+      <div class="actions" style="margin-bottom:12px">
+        <a class="btn primary" href="mfa.php?ativar=1">Ativar verificação em duas etapas</a>
+        <span class="muted">Leva menos de um minuto e protege a conta se a palavra-passe for descoberta.</span>
+      </div>
+    <?php endif; ?>
     Estado: <?= (int)$user['mfa_enabled'] === 1
         ? '<span class="tag on">Ativo desde ' . e((string)$user['mfa_confirmed_at']) . '</span>'
         : '<span class="tag off">Inativo</span>' ?>

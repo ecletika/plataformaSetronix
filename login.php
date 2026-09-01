@@ -22,7 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $r = auth_attempt_password($username, $password);
         if ($r['ok']) {
             auth_start_session($r['user']);
-            redirect('mfa.php');
+            // Sem MFA exigido e sem dispositivo associado, não há segundo passo.
+            if (mfa_required_for($r['user'])) {
+                redirect('mfa.php');
+            }
+            finish_login_and_redirect($r['user']);
         }
         $error = $r['error'];
     }
@@ -55,7 +59,11 @@ layout_head('Entrar', 'auth');
     </form>
 
     <p class="muted" style="margin-top:16px">
-      Após a palavra-passe será pedido o código de verificação em duas etapas (MFA).
+      <?php if (mfa_enforced_globally()): ?>
+        Após a palavra-passe será pedido o código de verificação em duas etapas (MFA).
+      <?php else: ?>
+        Se tiver a verificação em duas etapas activa, será pedido o código a seguir.
+      <?php endif; ?>
       Se perdeu o acesso, contacte um administrador da plataforma.
     </p>
   </div>

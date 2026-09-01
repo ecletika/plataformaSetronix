@@ -48,7 +48,7 @@ return [
         'max_failed_logins'     => 5,    // bloqueio da conta após N falhas
         'lockout_minutes'       => 15,
         'ip_attempt_limit'      => 25,   // tentativas por IP em 15 minutos
-        'password_min_length'   => 10,
+        'password_min_length'   => 6,
         'totp_window'           => 1,    // ±1 período de 30s de tolerância
         'recovery_code_count'   => 10,
     ],

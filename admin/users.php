@@ -61,11 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($problems = password_problems($pw)) {
                     throw new RuntimeException('A palavra-passe inicial deve ' . implode(', ', $problems) . '.');
                 }
+                $exigeMfa = isset($_POST['mfa_required']) ? 1 : 0;
                 q(
                     'INSERT INTO users (username, email, full_name, password_hash, role, is_active,
                                         must_change_pw, mfa_required, created_by)
-                     VALUES (?,?,?,?,?,?,1,1,?)',
-                    [$username, $email, $fullName, password_hash($pw, PASSWORD_DEFAULT), $role, $active, (int)$me['id']]
+                     VALUES (?,?,?,?,?,?,1,?,?)',
+                    [$username, $email, $fullName, password_hash($pw, PASSWORD_DEFAULT), $role, $active,
+                     $exigeMfa, (int)$me['id']]
                 );
                 $newId = (int)db()->lastInsertId();
                 if (isset($_POST['apps_submitted'])) {
@@ -86,8 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException('Tem de existir pelo menos um administrador ativo. Crie outro antes de alterar este.');
                     }
                 }
-                q('UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, is_active = ? WHERE id = ?',
-                  [$username, $email, $fullName, $role, $active, $id]);
+                q('UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, is_active = ?,
+                          mfa_required = ? WHERE id = ?',
+                  [$username, $email, $fullName, $role, $active,
+                   isset($_POST['mfa_required']) ? 1 : 0, $id]);
                 if (isset($_POST['apps_submitted'])) {
                     user_set_apps($id, (array)($_POST['apps'] ?? []));
                 }
@@ -158,6 +162,9 @@ $form = [
     'is_active' => $repost
         ? isset($_POST['is_active'])
         : (!$editing || (int)$editing['is_active'] === 1),
+    'mfa_required' => $repost
+        ? isset($_POST['mfa_required'])
+        : ($editing ? (int)$editing['mfa_required'] === 1 : mfa_enforced_globally()),
     'apps' => $repost
         ? array_map('intval', (array)($_POST['apps'] ?? []))
         : ($editing ? user_app_ids((int)$editing['id']) : []),
@@ -233,6 +240,15 @@ layout_head('Utilizadores', 'app', '../');
                <?= $form['is_active'] ? 'checked' : '' ?>>
         Conta ativa
       </label>
+      <?php if (!mfa_enforced_globally()): ?>
+        <label style="align-self:end">
+          <input type="checkbox" name="mfa_required" value="1" style="width:auto;margin-right:6px"
+                 <?= $form['mfa_required'] ? 'checked' : '' ?>>
+          Exigir MFA a esta conta
+        </label>
+      <?php else: ?>
+        <input type="hidden" name="mfa_required" value="1">
+      <?php endif; ?>
     </div>
     <?php if ($todasApps): ?>
       <h3>Acesso às aplicações</h3>
