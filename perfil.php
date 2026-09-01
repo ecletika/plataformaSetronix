@@ -58,6 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $user = q_one('SELECT * FROM users WHERE id = ?', [(int)$user['id']]);
 $left = mfa_recovery_codes_left((int)$user['id']);
+$mfa  = (int)$user['mfa_enabled'] === 1;
+
+// Se a submissão falhou, mantém o que foi escrito em vez de o deitar fora.
+$repost   = $error !== '' && ($_POST['action'] ?? '') === 'profile';
+$fullName = $repost ? (string)($_POST['full_name'] ?? '') : (string)$user['full_name'];
+$email    = $repost ? (string)($_POST['email'] ?? '') : (string)$user['email'];
+
 $sessions = q_all(
     'SELECT ip, user_agent, created_at, last_seen_at FROM user_sessions
       WHERE user_id = ? AND revoked_at IS NULL ORDER BY last_seen_at DESC LIMIT 10',
@@ -73,92 +80,136 @@ layout_head('A minha conta');
 <?php if ($newCodes): ?>
   <div class="card">
     <h2>Novos códigos de recuperação</h2>
-    <div class="alert warn">Os códigos anteriores deixaram de funcionar. Guarde estes agora — não voltarão a ser mostrados.</div>
+    <div class="alert warn">
+      Os códigos anteriores deixaram de funcionar. Guarde estes agora — não voltarão a ser mostrados.
+    </div>
     <div class="codes"><?php foreach ($newCodes as $c): ?><span><?= e($c) ?></span><?php endforeach; ?></div>
   </div>
 <?php endif; ?>
 
 <div class="card">
-  <h2>Dados da conta</h2>
+  <div class="ficha-head">
+    <h3><?= e($user['full_name']) ?></h3>
+    <span class="tag <?= e($user['role']) ?>"><?= e(ROLES[$user['role']] ?? $user['role']) ?></span>
+  </div>
+  <p class="ficha-sub mono"><?= e($user['username']) ?></p>
+
   <form method="post">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="profile">
     <div class="grid2">
-      <label>Utilizador
-        <input type="text" value="<?= e($user['username']) ?>" disabled>
-      </label>
-      <label>Perfil
-        <input type="text" value="<?= e(ROLES[$user['role']] ?? $user['role']) ?>" disabled>
-      </label>
       <label><span class="req">Nome completo</span>
-        <input type="text" name="full_name" required value="<?= e($user['full_name']) ?>">
+        <input type="text" name="full_name" required value="<?= e($fullName) ?>">
       </label>
       <label><span class="req">E-mail</span>
-        <input type="email" name="email" required value="<?= e($user['email']) ?>">
+        <input type="email" name="email" required value="<?= e($email) ?>">
       </label>
     </div>
     <div class="actions">
       <button class="primary" type="submit">Guardar alterações</button>
       <a class="btn" href="password.php">Alterar palavra-passe</a>
+      <span class="muted" style="margin-left:auto">
+        Último início de sessão:
+        <?= $user['last_login_at']
+            ? e((string)$user['last_login_at']) . ' · ' . e((string)$user['last_login_ip'])
+            : '—' ?>
+      </span>
     </div>
-    <p class="muted" style="margin-top:10px">
-      Último início de sessão:
-      <?= $user['last_login_at'] ? e($user['last_login_at']) . ' · ' . e((string)$user['last_login_ip']) : '—' ?>
-    </p>
   </form>
 </div>
 
 <div class="card">
-  <h2>Verificação em duas etapas (MFA)</h2>
+  <h2>Verificação em duas etapas</h2>
+
+<?php if (!$mfa): ?>
   <p class="muted">
-    <?php if ((int)$user['mfa_enabled'] !== 1): ?>
-      <div class="actions" style="margin-bottom:12px">
-        <a class="btn primary" href="mfa.php?ativar=1">Ativar verificação em duas etapas</a>
-        <span class="muted">Leva menos de um minuto e protege a conta se a palavra-passe for descoberta.</span>
-      </div>
-    <?php endif; ?>
-    Estado: <?= (int)$user['mfa_enabled'] === 1
-        ? '<span class="tag on">Ativo desde ' . e((string)$user['mfa_confirmed_at']) . '</span>'
-        : '<span class="tag off">Inativo</span>' ?>
-    · Códigos de recuperação por usar: <b><?= $left ?></b>
+    A conta está protegida apenas pela palavra-passe. Com a verificação em duas etapas,
+    quem souber a sua palavra-passe continua sem conseguir entrar.
   </p>
-  <?php if ($left <= 2 && (int)$user['mfa_enabled'] === 1): ?>
-    <div class="alert warn">Tem poucos códigos de recuperação. Gere um novo conjunto.</div>
+  <!-- Uma caixa só: sem limite ficaria uma faixa esticada de ponta a ponta. -->
+  <div class="ficha-grid" style="margin-top:14px;max-width:520px">
+    <div class="dbox">
+      <p class="t">Estado</p>
+      <p style="font-size:13px"><span class="tag off">Por ativar</span></p>
+      <p>
+        Precisa de uma aplicação autenticadora no telemóvel — Google Authenticator,
+        Microsoft Authenticator, Authy, 1Password ou Bitwarden. Leva menos de um minuto:
+        lê um código QR e confirma com os seis dígitos.
+      </p>
+      <div class="spacer"></div>
+      <a class="btn primary" href="mfa.php?ativar=1">Ativar agora</a>
+    </div>
+  </div>
+<?php else: ?>
+  <?php if ($left <= 2): ?>
+    <div class="alert warn">
+      Restam-lhe <?= $left ?> código(s) de recuperação. Gere um conjunto novo antes que
+      acabem — sem eles, perder o telemóvel significa perder o acesso.
+    </div>
   <?php endif; ?>
 
-  <div class="grid2">
-    <form method="post">
-      <?= csrf_field() ?>
-      <input type="hidden" name="action" value="new_codes">
-      <h3>Gerar novos códigos</h3>
-      <label>Confirme a palavra-passe
-        <input type="password" name="password" required autocomplete="current-password">
-      </label>
-      <button type="submit">Gerar novos códigos</button>
-    </form>
+  <div class="ficha-grid">
+    <div class="dbox">
+      <p class="t">Estado</p>
+      <p style="font-size:13px">
+        <span class="tag on">Ativa</span>
+        <span class="muted">desde <?= e(substr((string)$user['mfa_confirmed_at'], 0, 10)) ?></span>
+      </p>
+      <p>
+        <b><?= $left ?></b> código(s) de recuperação por usar. Servem para entrar quando
+        não tem o telemóvel à mão, e cada um só funciona uma vez.
+      </p>
+    </div>
 
-    <form method="post" onsubmit="return confirm('Vai remover o MFA e terminar a sessão. Continuar?')">
-      <?= csrf_field() ?>
-      <input type="hidden" name="action" value="reset_mfa">
-      <h3>Trocar de telemóvel</h3>
-      <label>Confirme a palavra-passe
-        <input type="password" name="password" required autocomplete="current-password">
-      </label>
-      <button class="danger" type="submit">Remover MFA e reassociar</button>
-    </form>
+    <div class="dbox">
+      <p class="t">Gerar novos códigos</p>
+      <p>
+        Substitui todos os códigos por um conjunto novo. Os antigos deixam de funcionar
+        imediatamente.
+      </p>
+      <div class="spacer"></div>
+      <form method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="new_codes">
+        <label style="margin-bottom:8px">Confirme a palavra-passe
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button type="submit">Gerar novos códigos</button>
+      </form>
+    </div>
+
+    <div class="dbox">
+      <p class="t">Trocar de telemóvel</p>
+      <p>
+        Remove o dispositivo associado e termina a sessão. A seguir volta a entrar e
+        associa o telemóvel novo.
+      </p>
+      <div class="spacer"></div>
+      <form method="post" onsubmit="return confirm('Vai remover o MFA e terminar a sessão. Continuar?')">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="reset_mfa">
+        <label style="margin-bottom:8px">Confirme a palavra-passe
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button class="danger" type="submit">Remover MFA e reassociar</button>
+      </form>
+    </div>
   </div>
+<?php endif; ?>
 </div>
 
 <div class="card">
   <h2>Sessões ativas</h2>
-  <div class="scroll">
+  <p class="muted">Onde a sua conta está aberta neste momento. Se vir algo que não reconhece,
+     altere a palavra-passe.</p>
+  <div class="scroll" style="margin-top:12px">
     <table>
       <thead><tr><th>Início</th><th>Última atividade</th><th>IP</th><th>Dispositivo</th></tr></thead>
       <tbody>
       <?php foreach ($sessions as $s): ?>
         <tr>
-          <td><?= e($s['created_at']) ?></td>
-          <td><?= e($s['last_seen_at']) ?></td>
+          <td class="mono"><?= e($s['created_at']) ?></td>
+          <td class="mono"><?= e($s['last_seen_at']) ?></td>
           <td class="mono"><?= e((string)$s['ip']) ?></td>
           <td class="muted"><?= e(mb_substr((string)$s['user_agent'], 0, 70)) ?></td>
         </tr>
