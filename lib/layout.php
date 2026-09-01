@@ -98,8 +98,8 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
   <h1><?= e($CONFIG['app']['name'] ?? 'Planeamento') ?></h1>
   <nav>
     <?php
-    $nav($base . 'index.php', 'Planeamento', $script === 'index.php' && $dir !== 'admin');
-    if (can('users.manage') || can('lists.edit')) {
+    $nav($base . 'index.php', 'Aplicações', $script === 'index.php' && $dir !== 'admin');
+    if (can('users.manage') || can('apps.manage')) {
         $nav($base . 'admin/index.php', 'Administração', $dir === 'admin');
     }
     $nav($base . 'perfil.php', 'A minha conta', $script === 'perfil.php');
@@ -129,12 +129,10 @@ function layout_foot(): void
 function admin_nav(string $current): void
 {
     $items = [
-        'index'   => ['index.php',   'Resumo',      'view'],
-        'users'   => ['users.php',   'Utilizadores','users.manage'],
-        'lists'   => ['lists.php',   'Listas base', 'lists.edit'],
-        'import'  => ['import.php',  'Importar dados', 'import'],
-        'audit'   => ['audit.php',   'Log de alterações', 'audit.view'],
-        'backup'  => ['backup.php',  'Backups',     'backup.manage'],
+        'index' => ['index.php', 'Resumo',            'view'],
+        'apps'  => ['apps.php',  'Aplicações',        'apps.manage'],
+        'users' => ['users.php', 'Utilizadores',      'users.manage'],
+        'audit' => ['audit.php', 'Log de alterações', 'audit.view'],
     ];
     echo '<div class="card" style="padding:10px 14px"><div class="actions">';
     foreach ($items as $key => [$href, $label, $perm]) {

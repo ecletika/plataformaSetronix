@@ -3,24 +3,27 @@
 
 define('URL_PREFIX', '../');
 require_once __DIR__ . '/../lib/bootstrap.php';
+require_once __DIR__ . '/../lib/apps.php';
 require_once __DIR__ . '/../lib/layout.php';
 
 $user = require_login('view');
-if (!can('users.manage') && !can('lists.edit')) {
+if (!can('users.manage') && !can('apps.manage')) {
     http_response_code(403);
     exit('Sem permissão para aceder à administração.');
 }
 
 $stats = [
-    'users_total'   => (int)q_val('SELECT COUNT(*) FROM users'),
-    'users_active'  => (int)q_val('SELECT COUNT(*) FROM users WHERE is_active = 1'),
-    'users_no_mfa'  => (int)q_val('SELECT COUNT(*) FROM users WHERE is_active = 1 AND mfa_enabled = 0'),
-    'list_items'    => (int)q_val('SELECT COUNT(*) FROM list_items WHERE is_active = 1'),
-    'works'         => (int)q_val('SELECT COUNT(*) FROM works WHERE is_archived = 0'),
-    'plans'         => (int)q_val('SELECT COUNT(*) FROM plans'),
+    'users_total'  => (int)q_val('SELECT COUNT(*) FROM users'),
+    'users_active' => (int)q_val('SELECT COUNT(*) FROM users WHERE is_active = 1'),
+    'users_no_mfa' => (int)q_val('SELECT COUNT(*) FROM users WHERE is_active = 1 AND mfa_enabled = 0'),
+    'apps_active'  => (int)q_val('SELECT COUNT(*) FROM apps WHERE is_active = 1'),
+    'apps_total'   => (int)q_val('SELECT COUNT(*) FROM apps'),
+    'versions'     => (int)q_val('SELECT COUNT(*) FROM app_versions'),
 ];
-$lastImport = q_one('SELECT * FROM import_runs ORDER BY id DESC LIMIT 1');
-$lastBackup = q_one('SELECT * FROM backups ORDER BY id DESC LIMIT 1');
+$lastVersion = q_one('SELECT av.*, a.name AS app_name
+                        FROM app_versions av
+                        JOIN apps a ON a.id = av.app_id
+                       ORDER BY av.id DESC LIMIT 1');
 $recent = q_all('SELECT * FROM audit_log ORDER BY id DESC LIMIT 12');
 $failed = (int)q_val('SELECT COUNT(*) FROM login_attempts
                       WHERE successful = 0 AND created_at > (NOW() - INTERVAL 24 HOUR)');
@@ -35,9 +38,9 @@ layout_head('Administração', 'app', '../');
   <div class="grid2" style="margin-top:12px">
     <div><div class="muted">Utilizadores ativos</div><b style="font-size:24px"><?= $stats['users_active'] ?></b>
          <span class="muted">de <?= $stats['users_total'] ?></span></div>
-    <div><div class="muted">Valores nas listas base</div><b style="font-size:24px"><?= $stats['list_items'] ?></b></div>
-    <div><div class="muted">Obras registadas</div><b style="font-size:24px"><?= $stats['works'] ?></b></div>
-    <div><div class="muted">Planeamentos semanais</div><b style="font-size:24px"><?= $stats['plans'] ?></b></div>
+    <div><div class="muted">Aplicações visíveis</div><b style="font-size:24px"><?= $stats['apps_active'] ?></b>
+         <span class="muted">de <?= $stats['apps_total'] ?></span></div>
+    <div><div class="muted">Versões guardadas</div><b style="font-size:24px"><?= $stats['versions'] ?></b></div>
   </div>
 </div>
 
@@ -54,29 +57,21 @@ layout_head('Administração', 'app', '../');
 <?php endif; ?>
 
 <div class="card">
-  <h2>Dados base e cópias de segurança</h2>
-  <table>
-    <tr>
-      <th style="width:190px">Última importação</th>
-      <td>
-        <?php if ($lastImport): ?>
-          <?= e($lastImport['filename']) ?> · <?= e($lastImport['created_at']) ?> ·
-          <?= (int)$lastImport['items_added'] ?> novos,
-          <?= (int)$lastImport['items_deactivated'] ?> desativados
-          <?= $lastImport['status'] === 'error' ? '<span class="tag off">erro</span>' : '' ?>
-        <?php else: ?><span class="muted">Nunca importado.</span><?php endif; ?>
-      </td>
-    </tr>
-    <tr>
-      <th>Último backup</th>
-      <td>
-        <?php if ($lastBackup): ?>
-          <?= e($lastBackup['filename']) ?> · <?= e($lastBackup['created_at']) ?> ·
-          <?= human_bytes((int)$lastBackup['size_bytes']) ?>
-        <?php else: ?><span class="muted">Nenhum backup criado.</span><?php endif; ?>
-      </td>
-    </tr>
-  </table>
+  <h2>Última publicação</h2>
+  <?php if ($lastVersion): ?>
+    <table>
+      <tr><th style="width:190px">Aplicação</th><td><?= e($lastVersion['app_name']) ?></td></tr>
+      <tr><th>Versão</th><td><?= (int)$lastVersion['version'] ?> ·
+          <?= e(human_bytes((int)$lastVersion['size_bytes'])) ?></td></tr>
+      <tr><th>Ficheiro</th><td class="mono"><?= e($lastVersion['filename']) ?></td></tr>
+      <tr><th>Data</th><td class="mono"><?= e((string)$lastVersion['created_at']) ?></td></tr>
+    </table>
+  <?php else: ?>
+    <p class="muted">Ainda não foi publicada nenhuma aplicação.</p>
+  <?php endif; ?>
+  <?php if (can('apps.manage')): ?>
+    <p style="margin-top:12px"><a class="btn primary" href="apps.php">Gerir aplicações</a></p>
+  <?php endif; ?>
 </div>
 
 <div class="card">

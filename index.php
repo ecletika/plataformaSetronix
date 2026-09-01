@@ -1,94 +1,77 @@
 <?php
 /**
- * Aplicação de planeamento.
+ * Página inicial: as aplicações disponíveis para o utilizador autenticado.
  *
- * Serve o protótipo HTML (legacy/) já autenticado, substituindo as listas
- * fixas do ficheiro pelas listas geridas na base de dados.
- *
- * Fase 1 (atual): obras e planeamentos continuam a ser guardados no browser
- * (localStorage), tal como no protótipo — mas as listas base já vêm do servidor
- * e o acesso é controlado por conta/MFA.
- * Fase 2: os endpoints em api/ passam a guardar obras e planeamentos na BD.
+ * A plataforma não tem lógica de negócio própria. Cada aplicação é um
+ * ficheiro HTML autónomo (feito à medida, por exemplo com o ChatGPT),
+ * enviado em Administração → Aplicações e aberto aqui.
  */
 
 require_once __DIR__ . '/lib/bootstrap.php';
-require_once __DIR__ . '/lib/lists.php';
+require_once __DIR__ . '/lib/apps.php';
+require_once __DIR__ . '/lib/layout.php';
 
 $user = require_login('view');
+$apps = apps_all(true);
 
-$appFile = __DIR__ . '/legacy/planeamento_obras_teste_web_v3_18_logotipo_setronix_oficial.html';
-if (!is_file($appFile)) {
-    http_response_code(500);
-    exit('Ficheiro da aplicação não encontrado em legacy/.');
-}
+layout_head('Aplicações', 'app');
+?>
+<style>
+.applist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.appcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;
+  display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);transition:border-color .12s,box-shadow .12s}
+.appcard:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(37,99,235,.12)}
+.appcard .icon{width:38px;height:38px;border-radius:10px;background:#eff6ff;color:var(--accent);
+  display:grid;place-items:center;font-weight:700;font-size:15px}
+.appcard b{font-size:15px}
+.appcard .meta{margin-top:auto;font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:38px 20px;color:var(--muted)}
+</style>
 
-$html = (string)file_get_contents($appFile);
+<div class="wrap">
 
-// -------------------------------------------------------------------
-// 1. Substituir as listas fixas pelas listas da base de dados
-// -------------------------------------------------------------------
-$lists = lists_all(true);
-// Se a base de dados ainda estiver vazia, mantém as listas do protótipo.
-$hasData = false;
-foreach ($lists as $values) {
-    if ($values) {
-        $hasData = true;
-        break;
-    }
-}
+<?php if (!$apps): ?>
+  <div class="card">
+    <div class="empty">
+      <p style="font-size:16px;color:var(--ink)"><b>Ainda não há nenhuma aplicação publicada.</b></p>
+      <p>Uma aplicação é um único ficheiro <code>.html</code> com tudo lá dentro.</p>
+      <?php if (can('apps.manage')): ?>
+        <p style="margin-top:18px"><a class="btn primary" href="admin/apps.php">Enviar a primeira aplicação</a></p>
+      <?php else: ?>
+        <p>Peça a um administrador para a publicar.</p>
+      <?php endif; ?>
+    </div>
+  </div>
+<?php else: ?>
+  <div class="actions" style="margin-bottom:14px">
+    <h2 style="margin:0;font-size:17px">Aplicações</h2>
+    <?php if (can('apps.manage')): ?>
+      <a class="btn" style="margin-left:auto" href="admin/apps.php">Gerir aplicações</a>
+    <?php endif; ?>
+  </div>
 
-if ($hasData) {
-    $json = json_encode($lists, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    // A declaração ocupa exatamente uma linha no ficheiro original:
-    //   const LISTS={...};
-    // Usa-se um callback para que o JSON não seja interpretado como
-    // referências de substituição (\0, \1, $1...).
-    $replaced = preg_replace_callback(
-        '/^const LISTS=.*$/m',
-        static fn(): string => 'const LISTS=' . $json . ';',
-        $html,
-        1,
-        $count
-    );
-    if ($replaced !== null && $count === 1) {
-        $html = $replaced;
-    }
-}
+  <div class="applist">
+    <?php foreach ($apps as $app):
+        $v = app_current_version($app);
+        $initial = mb_strtoupper(mb_substr($app['name'], 0, 1)); ?>
+      <a class="appcard" href="app.php?id=<?= (int)$app['id'] ?>">
+        <div class="icon"><?= e($initial) ?></div>
+        <b><?= e($app['name']) ?></b>
+        <?php if (!empty($app['description'])): ?>
+          <span class="muted"><?= e($app['description']) ?></span>
+        <?php endif; ?>
+        <span class="meta">
+          <?php if ($v): ?>
+            versão <?= (int)$v['version'] ?> · <?= e(substr((string)$v['created_at'], 0, 10)) ?>
+          <?php else: ?>
+            sem ficheiro
+          <?php endif; ?>
+        </span>
+      </a>
+    <?php endforeach; ?>
+  </div>
+<?php endif; ?>
 
-// -------------------------------------------------------------------
-// 2. Barra de sessão e contexto do utilizador
-// -------------------------------------------------------------------
-$canEdit = can('plan.edit') ? 'true' : 'false';
-$adminLink = (can('users.manage') || can('lists.edit'))
-    ? '<a href="admin/index.php">Administração</a>'
-    : '';
-
-$bar = '<div id="sxSessionBar">'
-     . '<span class="sx-user">' . e($user['full_name']) . ' · ' . e(ROLES[$user['role']] ?? $user['role']) . '</span>'
-     . '<span class="sx-links">'
-     . $adminLink
-     . '<a href="perfil.php">A minha conta</a>'
-     . '<a href="logout.php">Sair</a>'
-     . '</span></div>'
-     . '<style>'
-     . '#sxSessionBar{background:#0b1220;color:#94a3b8;font:13px system-ui,-apple-system,"Segoe UI",sans-serif;'
-     . 'padding:7px 18px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}'
-     . '#sxSessionBar a{color:#e2e8f0;text-decoration:none;margin-left:14px}'
-     . '#sxSessionBar a:hover{text-decoration:underline}'
-     . '</style>'
-     . '<script>window.SETRONIX = '
-     . json_encode([
-         'user'    => ['id' => (int)$user['id'], 'name' => $user['full_name'], 'role' => $user['role']],
-         'canEdit' => can('plan.edit'),
-         'apiBase' => 'api/',
-       ], JSON_UNESCAPED_UNICODE)
-     . ';</script>';
-
-$html = preg_replace_callback('/<body>/', static fn(): string => '<body>' . $bar, $html, 1);
-
-// Impede indexação e caching do conteúdo autenticado.
-header('Content-Type: text/html; charset=utf-8');
-header('Cache-Control: no-store, no-cache, must-revalidate');
-header('X-Robots-Tag: noindex, nofollow');
-
-echo $html;
+</div>
+<?php layout_foot(); ?>

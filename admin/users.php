@@ -191,10 +191,9 @@ layout_head('Utilizadores', 'app', '../');
     </div>
     <p class="muted">
       <b>Permissões:</b>
-      Administrador — tudo, incluindo utilizadores, importações e backups ·
-      Gestor de projeto — obras, planeamentos e listas base ·
-      Supervisor — planeamentos semanais ·
-      Consulta — apenas leitura.
+      Administrador — tudo, incluindo contas e log de alterações ·
+      Gestor de aplicações — envia e substitui as aplicações HTML ·
+      Utilizador e Consulta — abrem as aplicações publicadas.
     </p>
     <div class="actions">
       <button class="primary" type="submit"><?= $editing ? 'Guardar alterações' : 'Criar utilizador' ?></button>

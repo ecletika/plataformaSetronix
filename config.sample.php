@@ -31,7 +31,7 @@ return [
     // Aplicação
     // ---------------------------------------------------------------
     'app' => [
-        'name'      => 'Planeamento Operacional de Obras',
+        'name'      => 'Plataforma Setronix',
         'org'       => 'Setronix',
         'timezone'  => 'Europe/Lisbon',
         'base_url'  => '',            // vazio = detecção automática
@@ -54,11 +54,17 @@ return [
     ],
 
     // ---------------------------------------------------------------
+    // Aplicações HTML
+    // ---------------------------------------------------------------
+    'apps' => [
+        'max_mb' => 8,   // tamanho máximo de cada ficheiro .html enviado
+    ],
+
+    // ---------------------------------------------------------------
     // Caminhos (relativos à raiz da aplicação)
     // ---------------------------------------------------------------
     'paths' => [
         'storage' => __DIR__ . '/storage',
-        'backups' => __DIR__ . '/storage/backups',
-        'uploads' => __DIR__ . '/storage/uploads',
+        'apps'    => __DIR__ . '/storage/apps',
     ],
 ];

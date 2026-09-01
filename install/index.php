@@ -4,10 +4,9 @@
  *
  * Passos:
  *   1. Verificação do ambiente (PHP, extensões, permissões)
- *   2. Dados da base de dados → escreve config.php
- *   3. Criação das tabelas (schema.sql)
- *   4. Criação do primeiro administrador
- *   5. Importação opcional do ficheiro de listas base
+ *   2. Dados da base de dados → escreve config.php e cria as tabelas
+ *   3. Criação do primeiro administrador
+ *   4. Conclusão
  *
  * Depois de concluído, APAGUE ou bloqueie esta pasta.
  */
@@ -45,10 +44,8 @@ function env_checks(): array
         ['Extensão pdo_mysql',         extension_loaded('pdo_mysql'), 'ligação à base de dados'],
         ['Extensão mbstring',          extension_loaded('mbstring'), 'texto com acentos'],
         ['Extensão openssl',           extension_loaded('openssl'), 'cifra dos segredos MFA'],
-        ['Extensão zip',               class_exists('ZipArchive'), 'leitura de ficheiros .xlsx (opcional — sem ela, use CSV)'],
-        ['Extensão zlib',              function_exists('gzencode'), 'compressão dos backups (opcional)'],
         ['Escrita na raiz da aplicação', is_writable(APP_ROOT), 'criação do config.php'],
-        ['Escrita em storage/',        is_dir($storage) && is_writable($storage), 'backups e uploads'],
+        ['Escrita em storage/',        is_dir($storage) && is_writable($storage), 'ficheiros das aplicações'],
     ];
 }
 
@@ -126,10 +123,12 @@ return [
         'totp_window'            => 1,
         'recovery_code_count'    => 10,
     ],
+    'apps' => [
+        'max_mb' => 8,
+    ],
     'paths' => [
         'storage' => __DIR__ . '/storage',
-        'backups' => __DIR__ . '/storage/backups',
-        'uploads' => __DIR__ . '/storage/uploads',
+        'apps'    => __DIR__ . '/storage/apps',
     ],
 ];
 PHPTPL;
@@ -186,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db,
                 bin2hex(random_bytes(32)),
                 trim((string)($_POST['org'] ?? 'Setronix')) ?: 'Setronix',
-                trim((string)($_POST['appname'] ?? 'Planeamento Operacional de Obras')) ?: 'Planeamento Operacional de Obras'
+                trim((string)($_POST['appname'] ?? 'Plataforma Setronix')) ?: 'Plataforma Setronix'
             );
             header('Location: index.php?step=2');
             exit;
@@ -242,24 +241,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        if ($action === 'seed') {
-            require_once APP_ROOT . '/lib/bootstrap.php';
-            require_once APP_ROOT . '/lib/lists.php';
-
-            if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Selecione o ficheiro de listas base (.xlsx ou .csv).');
-            }
-            $name = (string)$_FILES['file']['name'];
-            $tmp  = (string)$_FILES['file']['tmp_name'];
-            $stats = lists_import($tmp, $name, 'merge', null);
-            $_SESSION['seed_stats'] = $stats;
-            header('Location: index.php?step=5');
-            exit;
-        }
-
         if ($action === 'finish') {
-            if (!is_dir(APP_ROOT . '/storage')) {
-                mkdir(APP_ROOT . '/storage', 0750, true);
+            if (!is_dir(APP_ROOT . '/storage/apps')) {
+                mkdir(APP_ROOT . '/storage/apps', 0750, true);
             }
             file_put_contents($lockFile, date('c') . " instalação concluída\n");
             header('Location: index.php?step=99');
@@ -311,10 +295,10 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
 <body>
 <div class="wrap">
   <h1>Plataforma Setronix — instalação</h1>
-  <p class="muted">Planeamento operacional de obras · configuração inicial do servidor</p>
+  <p class="muted">Contas, autenticação e aplicações HTML · configuração inicial do servidor</p>
 
   <div class="steps">
-    <?php foreach ([1 => 'Ambiente', 2 => 'Base de dados', 3 => 'Administrador', 4 => 'Listas base', 5 => 'Concluir'] as $n => $label): ?>
+    <?php foreach ([1 => 'Ambiente', 2 => 'Base de dados', 3 => 'Administrador', 4 => 'Concluir'] as $n => $label): ?>
       <span class="<?= $step === $n ? 'on' : '' ?>"><?= $n ?>. <?= htmlspecialchars($label) ?></span>
     <?php endforeach; ?>
   </div>
@@ -330,9 +314,9 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
     </div>
     <p>Verificações finais recomendadas no cPanel:</p>
     <ul class="muted">
-      <li>Permissões: <code>config.php</code> = 640, <code>storage/</code> = 750.</li>
+      <li>Permissões: <code>config.php</code> = 640, <code>storage/</code> e <code>storage/apps/</code> = 750.</li>
       <li>Certificado SSL ativo e redirecionamento para HTTPS ligado.</li>
-      <li>Cron job diário para <code>install/cron_backup.php</code> (mova-o para fora de install/ antes de apagar a pasta).</li>
+      <li>Backup periódico da base de dados e da pasta <code>storage/apps/</code> (cPanel &rarr; Backup).</li>
     </ul>
     <p><a href="../login.php"><button>Ir para o início de sessão</button></a></p>
   </div>
@@ -391,7 +375,7 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
         <h3>Identificação</h3>
         <div class="grid">
           <label>Organização <input type="text" name="org" value="Setronix"></label>
-          <label>Nome da aplicação <input type="text" name="appname" value="Planeamento Operacional de Obras"></label>
+          <label>Nome da plataforma <input type="text" name="appname" value="Plataforma Setronix"></label>
         </div>
         <button type="submit">Testar ligação e gravar</button>
       </form>
@@ -402,8 +386,8 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
   <div class="card">
     <h2>3. Administrador inicial</h2>
     <p class="muted">
-      Esta conta terá acesso total: gestão de utilizadores, listas base, importações,
-      log de alterações e backups. No primeiro início de sessão será obrigatório ativar o MFA.
+      Esta conta terá acesso total: gestão de utilizadores, envio das aplicações HTML e
+      log de alterações. No primeiro início de sessão será obrigatório ativar o MFA.
     </p>
     <form method="post">
       <input type="hidden" name="action" value="admin">
@@ -423,32 +407,9 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
     </p>
   </div>
 
-<?php elseif ($step === 4): ?>
-  <div class="card">
-    <h2>4. Listas base (opcional)</h2>
-    <p class="muted">
-      Envie o ficheiro <i>LISTA DE SELEÇÃO.xlsx</i> para preencher clientes, projetos,
-      gestores, supervisores, chefes de equipa, ajudantes e tarefas tipo.
-      Pode fazê-lo mais tarde em <b>Administração → Importar dados</b>.
-    </p>
-    <form method="post" enctype="multipart/form-data">
-      <input type="hidden" name="action" value="seed">
-      <input type="hidden" name="step" value="4">
-      <label>Ficheiro (.xlsx ou .csv) <input type="file" name="file" accept=".xlsx,.csv" required></label>
-      <button type="submit">Importar</button>
-      <a href="index.php?step=5"><button type="button" class="ghost">Saltar este passo</button></a>
-    </form>
-  </div>
-
 <?php else: ?>
   <div class="card">
-    <h2>5. Concluir</h2>
-    <?php if (!empty($_SESSION['seed_stats'])):
-        $s = $_SESSION['seed_stats']; unset($_SESSION['seed_stats']); ?>
-      <div class="alert ok">
-        Listas importadas: <?= (int)$s['added'] ?> valores novos a partir de <?= (int)$s['rows'] ?> linhas.
-      </div>
-    <?php endif; ?>
+    <h2>4. Concluir</h2>
     <p class="muted">
       Ao concluir, o assistente fica bloqueado. Depois disso apague a pasta
       <code>install/</code> do servidor.

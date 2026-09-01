@@ -6,8 +6,8 @@ declare(strict_types=1);
 /**
  * Regista uma acção no log de auditoria.
  *
- * @param string      $action  login, logout, create, update, delete, import, backup, ...
- * @param string|null $entity  work, plan, user, list_item, system
+ * @param string      $action  login, logout, create, update, delete, install, ...
+ * @param string|null $entity  user, app, system
  * @param array|null  $before  Estado anterior (será guardado em JSON)
  * @param array|null  $after   Estado posterior
  */

@@ -5,16 +5,23 @@ declare(strict_types=1);
 
 const ROLES = [
     'admin'      => 'Administrador',
-    'gestor'     => 'Gestor de projeto',
-    'supervisor' => 'Supervisor',
+    'gestor'     => 'Gestor de aplicações',
+    'supervisor' => 'Utilizador',
     'leitor'     => 'Consulta',
 ];
 
-/** Matriz de permissões por perfil. */
+/**
+ * Matriz de permissões por perfil.
+ *
+ *   view         abrir as aplicações publicadas
+ *   apps.manage  enviar, substituir e remover aplicações
+ *   users.manage criar e gerir contas
+ *   audit.view   consultar o log de alterações
+ */
 const PERMISSIONS = [
-    'admin'      => ['view', 'plan.edit', 'work.edit', 'lists.edit', 'import', 'users.manage', 'audit.view', 'backup.manage'],
-    'gestor'     => ['view', 'plan.edit', 'work.edit', 'lists.edit', 'import'],
-    'supervisor' => ['view', 'plan.edit'],
+    'admin'      => ['view', 'apps.manage', 'users.manage', 'audit.view'],
+    'gestor'     => ['view', 'apps.manage'],
+    'supervisor' => ['view'],
     'leitor'     => ['view'],
 ];
 

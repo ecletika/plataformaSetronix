@@ -2,12 +2,10 @@
 config.php
 
 # Dados de execução — as pastas são versionadas vazias, o conteúdo não
-storage/backups/*
-storage/uploads/*
+storage/apps/*
 storage/.installed
 !storage/.htaccess
-!storage/backups/.gitkeep
-!storage/uploads/.gitkeep
+!storage/apps/.gitkeep
 
 # Ferramentas locais
 .claude-flow/

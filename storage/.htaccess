@@ -1,5 +1,6 @@
-# Bloqueia todo o acesso web a esta pasta (backups, uploads).
-# Os ficheiros só são servidos através de admin/backup.php, com sessão validada.
+# Bloqueia todo o acesso web a esta pasta.
+# Os ficheiros HTML das aplicações só são servidos através de app_raw.php,
+# com sessão validada.
 
 <IfModule mod_authz_core.c>
     Require all denied

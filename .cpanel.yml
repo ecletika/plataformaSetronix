@@ -16,8 +16,8 @@ deployment:
     - export DEPLOYPATH=/home/planeamentostx/public_html
 
     # 1. Copia a aplicação. O glob * não apanha ficheiros ocultos na raiz,
-    #    mas os .htaccess dentro de lib/, legacy/ e storage/ vão junto com
-    #    as respetivas pastas na cópia recursiva.
+    #    mas os .htaccess dentro de lib/ e storage/ vão junto com as
+    #    respetivas pastas na cópia recursiva.
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R ./* $DEPLOYPATH/
 
@@ -25,10 +25,11 @@ deployment:
     #    protege o config.php). Sem esta linha o site fica exposto.
     - /bin/cp -f ./.htaccess $DEPLOYPATH/.htaccess
 
-    # 3. Pastas de dados. O config.php e os backups já existentes NÃO são
-    #    tocados: a cópia só sobrepõe ficheiros com o mesmo nome.
-    - /bin/mkdir -p $DEPLOYPATH/storage/backups $DEPLOYPATH/storage/uploads
-    - /bin/chmod 750 $DEPLOYPATH/storage $DEPLOYPATH/storage/backups $DEPLOYPATH/storage/uploads
+    # 3. Pastas de dados. O config.php e os ficheiros das aplicações já
+    #    existentes NÃO são tocados: a cópia só sobrepõe ficheiros com o
+    #    mesmo nome.
+    - /bin/mkdir -p $DEPLOYPATH/storage/apps
+    - /bin/chmod 750 $DEPLOYPATH/storage $DEPLOYPATH/storage/apps
 
     # 4. Depois da instalação estar concluída, o assistente deixa de ser
     #    publicado — para não voltar a aparecer a cada deploy.

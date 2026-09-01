@@ -51,7 +51,7 @@ Options -Indexes
     Header always set Referrer-Policy "same-origin"
 </IfModule>
 
-# --- Limite de upload (importação de listas) --------------------------
+# --- Limite de upload (ficheiros HTML das aplicações) -----------------
 <IfModule mod_php.c>
     php_value upload_max_filesize 10M
     php_value post_max_size 12M
