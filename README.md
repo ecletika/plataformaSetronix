@@ -85,6 +85,8 @@ lib/audit.php          Log de alterações
 lib/helpers.php        Utilitários (CSRF, cifra, escape, ...)
 lib/layout.php         Cabeçalho, rodapé e estilos partilhados
 
+assets/logo-setronix.png  Logótipo, servido pela própria plataforma
+
 install/index.php      Assistente de instalação (apagar depois de instalar)
 install/schema.sql     Esquema da base de dados
 install/migrar_v2.sql  Migração a partir da versão anterior
@@ -132,7 +134,19 @@ aplicações — de outra forma seria possível ficar sem acesso ao que se publi
 Limite por ficheiro: 8 MB (configurável em `config.php`, chave `apps.max_mb`;
 o servidor também tem de aceitar o upload — ver `upload_max_filesize`).
 
-## 5. Perfis e permissões
+## 5. Nome e logótipo
+
+O nome que aparece no cabeçalho, no ecrã de entrada e no título do separador
+altera-se em **Administração → Resumo → Identificação**. Fica guardado na base
+de dados, não no `config.php` — não é preciso mexer em ficheiros no servidor.
+
+O logótipo é `assets/logo-setronix.png`, servido pela própria plataforma e não
+pelo site institucional: assim o painel não fica dependente de um pedido
+externo para se apresentar. Para o trocar, substitua o ficheiro mantendo o nome.
+Sobre a barra escura é apresentado numa placa branca, porque o texto do logótipo
+é vermelho e não teria contraste suficiente sobre o azul-escuro.
+
+## 6. Perfis e permissões
 
 | Perfil | Pode |
 |---|---|
@@ -141,7 +155,7 @@ o servidor também tem de aceitar o upload — ver `upload_max_filesize`).
 | **Utilizador** | abrir as aplicações publicadas |
 | **Consulta** | abrir as aplicações publicadas |
 
-## 6. Onde ficam os dados das aplicações
+## 7. Onde ficam os dados das aplicações
 
 A plataforma guarda o **ficheiro** da aplicação; **não** guarda os dados que a
 aplicação produz. Uma página HTML autónoma normalmente usa o `localStorage` do
@@ -151,7 +165,7 @@ não são partilhados entre pessoas e desaparecem se o browser for limpo.
 Para que os dados sejam centrais e partilhados, a aplicação tem de falar com um
 servidor. Isso é trabalho adicional, fora do âmbito desta casca.
 
-## 7. Nota de segurança
+## 8. Nota de segurança
 
 O ficheiro HTML enviado corre na mesma origem que a plataforma, com a sessão do
 utilizador iniciada. Isso é o que permite que o `localStorage` da aplicação

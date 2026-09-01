@@ -18,7 +18,7 @@ function layout_head(string $title, string $variant = 'app', string $base = ''):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title><?= e($title) ?> · <?= e($org) ?></title>
+<title><?= e($title) ?> · <?= e(app_name()) ?></title>
 <style>
 :root{
   --bg:#f1f5f9; --panel:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
@@ -112,8 +112,14 @@ code,.mono{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
 .codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-family:ui-monospace,Consolas,monospace}
 .codes span{background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
 .otp{font-size:26px;letter-spacing:10px;text-align:center;font-family:ui-monospace,Consolas,monospace}
-.brandmark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;
-  color:#fff;font-weight:700;font-size:14px}
+/* O logotipo tem texto vermelho escuro: sobre a barra azul-escura precisa
+   de uma placa clara para ter contraste suficiente. */
+.brandplate{background:#fff;border-radius:8px;padding:5px 9px;display:flex;align-items:center;flex:none}
+.brandplate img{height:27px;width:auto;display:block}
+.authlogo{display:flex;justify-content:center;margin-bottom:6px}
+.authlogo img{height:58px;width:auto;max-width:100%;display:block}
+.authname{text-align:center;font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}
+.authsub{text-align:center;color:var(--muted);font-size:13px;margin:0 0 18px}
 footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </style>
 </head>
@@ -127,8 +133,10 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     };
     ?>
 <header class="topbar">
-  <div class="brandmark">S</div>
-  <h1><?= e($CONFIG['app']['name'] ?? 'Planeamento') ?></h1>
+  <span class="brandplate">
+    <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Setronix" width="718" height="277">
+  </span>
+  <h1><?= e(app_name()) ?></h1>
   <nav>
     <?php
     $nav($base . 'index.php', 'Aplicações', $script === 'index.php' && $dir !== 'admin');
@@ -155,7 +163,7 @@ function layout_foot(): void
 {
     global $CONFIG;
     echo '<footer class="foot">' . e($CONFIG['app']['org'] ?? 'Setronix')
-       . ' · ' . e($CONFIG['app']['name'] ?? '') . ' · ' . date('Y') . '</footer></body></html>';
+       . ' · ' . e(app_name()) . ' · ' . date('Y') . '</footer></body></html>';
 }
 
 /**

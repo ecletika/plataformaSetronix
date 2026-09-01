@@ -26,7 +26,7 @@ if (!$app || !user_can_open_app((int)$user['id'], $app, can('apps.manage'))) {
 
 $version = app_current_version($app);
 $src     = 'app_raw.php?id=' . (int)$app['id'] . '&t=' . (int)($version['id'] ?? 0);
-$org     = $CONFIG['app']['org'] ?? 'Setronix';
+$org     = app_name();
 ?><!doctype html>
 <html lang="pt-PT">
 <head>
@@ -44,6 +44,8 @@ body{margin:0;display:flex;flex-direction:column;background:#0f172a;
 .bar a{color:#cbd5e1;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px}
 .bar a:hover{background:rgba(255,255,255,.1);color:#fff}
 .bar .name{font-weight:600;font-size:14px}
+.bar .plate{background:#fff;border-radius:6px;padding:4px 7px;display:flex;align-items:center;flex:none}
+.bar .plate img{height:18px;width:auto;display:block}
 .bar .sep{color:#475569}
 .bar .who{margin-left:auto;color:#94a3b8;font-size:12px}
 iframe{flex:1 1 auto;width:100%;border:0;background:#fff;display:block}
@@ -52,6 +54,7 @@ iframe{flex:1 1 auto;width:100%;border:0;background:#fff;display:block}
 </head>
 <body>
 <div class="bar">
+  <span class="plate"><img src="assets/logo-setronix.png" alt="Setronix" width="718" height="277"></span>
   <a href="index.php" title="Voltar às aplicações">&larr; Aplicações</a>
   <span class="sep">|</span>
   <span class="name"><?= e($app['name']) ?></span>

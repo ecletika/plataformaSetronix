@@ -12,6 +12,26 @@ if (!can('users.manage') && !can('apps.manage')) {
     exit('Sem permissão para aceder à administração.');
 }
 
+$erro = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'nome') {
+    csrf_check();
+    if (!can('users.manage')) {
+        http_response_code(403);
+        exit('Sem permissão.');
+    }
+    $novo = trim((string)($_POST['app_name'] ?? ''));
+    if ($novo === '') {
+        $erro = 'Indique o nome da plataforma.';
+    } else {
+        $antes = app_name();
+        setting_set('app_name', mb_substr($novo, 0, 120));
+        audit('update', 'system', null, 'Nome da plataforma: ' . $novo, ['app_name' => $antes],
+              ['app_name' => $novo]);
+        flash('ok', 'Nome alterado para "' . $novo . '".');
+        redirect('index.php');
+    }
+}
+
 $stats = [
     'users_total'  => (int)q_val('SELECT COUNT(*) FROM users'),
     'users_active' => (int)q_val('SELECT COUNT(*) FROM users WHERE is_active = 1'),
@@ -32,6 +52,23 @@ layout_head('Administração', 'app', '../');
 ?>
 <div class="wrap">
 <?php admin_nav('index'); ?>
+
+<?php if ($erro !== ''): ?><div class="alert err"><?= e($erro) ?></div><?php endif; ?>
+
+<?php if (can('users.manage')): ?>
+<div class="card">
+  <h2>Identificação</h2>
+  <p class="muted">Aparece no cabeçalho, no ecrã de entrada e no título do separador.</p>
+  <form method="post" class="actions" style="margin-top:12px;align-items:flex-end">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="nome">
+    <label style="flex:1;min-width:240px;max-width:420px;margin:0">Nome da plataforma
+      <input type="text" name="app_name" maxlength="120" required value="<?= e(app_name()) ?>">
+    </label>
+    <button class="primary" type="submit">Guardar</button>
+  </form>
+</div>
+<?php endif; ?>
 
 <div class="card">
   <h2>Estado da plataforma</h2>

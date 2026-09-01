@@ -32,13 +32,11 @@ layout_head('Entrar', 'auth');
 ?>
 <div class="wrap narrow" style="margin-top:8vh">
   <div class="card">
-    <div class="actions" style="margin-bottom:16px">
-      <div class="brandmark">S</div>
-      <div>
-        <h2 style="margin:0"><?= e($CONFIG['app']['org'] ?? 'Setronix') ?></h2>
-        <div class="muted"><?= e($CONFIG['app']['name'] ?? '') ?></div>
-      </div>
+    <div class="authlogo">
+      <img src="assets/logo-setronix.png" alt="Setronix" width="718" height="277">
     </div>
+    <h2 class="authname"><?= e(app_name()) ?></h2>
+    <p class="authsub">Entrada reservada a utilizadores registados</p>
 
     <?php if ($error !== ''): ?>
       <div class="alert err"><?= e($error) ?></div>
