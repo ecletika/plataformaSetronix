@@ -11,6 +11,7 @@
 
 require_once __DIR__ . '/lib/bootstrap.php';
 require_once __DIR__ . '/lib/layout.php';
+require_once __DIR__ . '/lib/qrcode.php';
 
 if (empty($_SESSION['uid'])) {
     redirect('login.php');
@@ -147,20 +148,27 @@ layout_head('Verificação em duas etapas', 'auth');
 
     <?php if ($error !== ''): ?><div class="alert err"><?= e($error) ?></div><?php endif; ?>
 
-    <h3>1. Adicionar a conta na aplicação</h3>
+    <h3>1. Ler o código com a aplicação</h3>
+    <?php $uri = totp_uri((string)$_SESSION['mfa_enroll_secret'], (string)$user['username'], (string)$org); ?>
     <p class="muted">
-      Na aplicação, escolha <b>Adicionar conta → Introduzir chave de configuração</b>
-      e copie a chave abaixo. Tipo de conta: <b>baseada em tempo (TOTP)</b>.
+      Na aplicação autenticadora escolha <b>Adicionar conta &rarr; Ler código QR</b>
+      e aponte a câmara para a imagem.
     </p>
-    <div class="secret"><?= e(totp_secret_pretty((string)$_SESSION['mfa_enroll_secret'])) ?></div>
-    <p class="muted" style="margin-top:8px">
-      Conta: <code><?= e($org . ':' . $user['username']) ?></code><br>
-      Emissor: <code><?= e($org) ?></code> · Algoritmo SHA1 · 6 dígitos · 30 segundos
+    <div class="qr"><?= qr_svg($uri, 4, 4, 'Código QR para configurar a verificação em duas etapas') ?></div>
+    <p class="muted" style="text-align:center">
+      Conta: <code><?= e($org . ':' . $user['username']) ?></code> ·
+      SHA1 · 6 dígitos · 30 segundos
     </p>
-    <details style="margin:10px 0">
-      <summary class="muted" style="cursor:pointer">Ver o endereço otpauth:// completo</summary>
-      <p class="mono" style="word-break:break-all;font-size:12px;background:#f8fafc;padding:10px;border-radius:6px">
-        <?= e(totp_uri((string)$_SESSION['mfa_enroll_secret'], (string)$user['username'], (string)$org)) ?>
+
+    <details style="margin:14px 0">
+      <summary class="muted" style="cursor:pointer">Não consigo ler o código — introduzir a chave à mão</summary>
+      <p class="muted" style="margin-top:10px">
+        Na aplicação, escolha <b>Adicionar conta &rarr; Introduzir chave de configuração</b>,
+        com tipo de conta <b>baseada em tempo (TOTP)</b>, e copie a chave:
+      </p>
+      <div class="secret"><?= e(totp_secret_pretty((string)$_SESSION['mfa_enroll_secret'])) ?></div>
+      <p class="mono" style="word-break:break-all;font-size:12px;background:#f8fafc;padding:10px;border-radius:6px;margin-top:10px">
+        <?= e($uri) ?>
       </p>
     </details>
 

@@ -128,6 +128,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $editing = $editId ? q_one('SELECT * FROM users WHERE id = ?', [$editId]) : null;
+
+// Se uma edição falhou, continuar em modo de edição mesmo sem o ?edit= no URL.
+if ($error !== '' && ($_POST['action'] ?? '') === 'update' && !$editing && !empty($_POST['id'])) {
+    $editing = q_one('SELECT * FROM users WHERE id = ?', [(int)$_POST['id']]);
+}
+
+/**
+ * Valores a mostrar no formulário.
+ *
+ * Quando uma submissão falha, o que foi escrito tem precedência sobre o que
+ * está na base de dados — caso contrário o formulário voltava vazio e era
+ * preciso escrever tudo outra vez só porque a palavra-passe era curta.
+ */
+$repost = $error !== '' && in_array((string)($_POST['action'] ?? ''), ['create', 'update'], true);
+$form = [
+    'username'  => $repost ? (string)($_POST['username'] ?? '')   : (string)($editing['username'] ?? ''),
+    'email'     => $repost ? (string)($_POST['email'] ?? '')      : (string)($editing['email'] ?? ''),
+    'full_name' => $repost ? (string)($_POST['full_name'] ?? '')  : (string)($editing['full_name'] ?? ''),
+    'role'      => $repost ? (string)($_POST['role'] ?? 'leitor') : (string)($editing['role'] ?? 'leitor'),
+    'password'  => $repost ? (string)($_POST['password'] ?? '')   : '',
+    'is_active' => $repost
+        ? isset($_POST['is_active'])
+        : (!$editing || (int)$editing['is_active'] === 1),
+];
+
 $users = q_all('SELECT * FROM users ORDER BY is_active DESC, role, username');
 
 layout_head('Utilizadores', 'app', '../');
@@ -161,18 +186,18 @@ layout_head('Utilizadores', 'app', '../');
     <div class="grid2">
       <label><span class="req">Nome de utilizador</span>
         <input type="text" name="username" required pattern="[a-z0-9._\-]{3,64}"
-               value="<?= e($editing['username'] ?? '') ?>" placeholder="ex.: jsilva">
+               value="<?= e($form['username']) ?>" placeholder="ex.: jsilva">
       </label>
       <label><span class="req">E-mail</span>
-        <input type="email" name="email" required value="<?= e($editing['email'] ?? '') ?>">
+        <input type="email" name="email" required value="<?= e($form['email']) ?>">
       </label>
       <label><span class="req">Nome completo</span>
-        <input type="text" name="full_name" required value="<?= e($editing['full_name'] ?? '') ?>">
+        <input type="text" name="full_name" required value="<?= e($form['full_name']) ?>">
       </label>
       <label><span class="req">Perfil</span>
         <select name="role">
           <?php foreach (ROLES as $code => $label): ?>
-            <option value="<?= e($code) ?>" <?= ($editing['role'] ?? 'leitor') === $code ? 'selected' : '' ?>>
+            <option value="<?= e($code) ?>" <?= $form['role'] === $code ? 'selected' : '' ?>>
               <?= e($label) ?>
             </option>
           <?php endforeach; ?>
@@ -180,12 +205,13 @@ layout_head('Utilizadores', 'app', '../');
       </label>
       <?php if (!$editing): ?>
         <label>Palavra-passe inicial
-          <input type="text" name="password" placeholder="deixar vazio para gerar automaticamente">
+          <input type="text" name="password" value="<?= e($form['password']) ?>"
+                 placeholder="deixar vazio para gerar automaticamente">
         </label>
       <?php endif; ?>
       <label style="align-self:end">
         <input type="checkbox" name="is_active" value="1" style="width:auto;margin-right:6px"
-               <?= (!$editing || (int)$editing['is_active'] === 1) ? 'checked' : '' ?>>
+               <?= $form['is_active'] ? 'checked' : '' ?>>
         Conta ativa
       </label>
     </div>

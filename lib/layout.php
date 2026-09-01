@@ -76,6 +76,8 @@ tbody tr:hover{background:#f8fafc}
 code,.mono{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
 .secret{font-family:ui-monospace,Consolas,monospace;font-size:19px;letter-spacing:2px;background:#f8fafc;
   border:1px dashed #94a3b8;border-radius:8px;padding:14px;text-align:center;user-select:all;word-break:break-all}
+.qr{display:flex;justify-content:center;margin:14px 0}
+.qr svg{border:1px solid var(--line);border-radius:8px;max-width:100%;height:auto}
 .codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-family:ui-monospace,Consolas,monospace}
 .codes span{background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
 .otp{font-size:26px;letter-spacing:10px;text-align:center;font-family:ui-monospace,Consolas,monospace}

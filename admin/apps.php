@@ -100,6 +100,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $apps = apps_all(false);
 $open = $openId ? app_find($openId) : null;
 
+// Depois de uma submissão falhada, o formulário volta a ser desenhado com o
+// que foi escrito. O ficheiro em si não pode ser reposto — o browser não
+// deixa preencher um <input type="file"> — mas o resto fica.
+$failed = $error !== '' ? (string)($_POST['action'] ?? '') : '';
+$novo = [
+    'name'        => $failed === 'create' ? (string)($_POST['name'] ?? '') : '',
+    'description' => $failed === 'create' ? (string)($_POST['description'] ?? '') : '',
+];
+
 layout_head('Aplicações', 'app', '../');
 ?>
 <div class="wrap">
@@ -146,7 +155,15 @@ layout_head('Aplicações', 'app', '../');
   </table>
 </div>
 
-<?php if ($open): $versions = app_versions((int)$open['id']); $cur = app_current_version($open); ?>
+<?php if ($open):
+    $versions = app_versions((int)$open['id']);
+    $cur      = app_current_version($open);
+    $ed = [
+        'name'        => $failed === 'edit' ? (string)($_POST['name'] ?? '') : (string)$open['name'],
+        'description' => $failed === 'edit' ? (string)($_POST['description'] ?? '') : (string)$open['description'],
+        'is_active'   => $failed === 'edit' ? isset($_POST['is_active']) : (int)$open['is_active'] === 1,
+    ];
+?>
 <div class="card">
   <h2><?= e($open['name']) ?></h2>
   <p class="muted">Endereço: <code>app.php?id=<?= (int)$open['id'] ?></code></p>
@@ -213,13 +230,13 @@ layout_head('Aplicações', 'app', '../');
     <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
     <div class="grid2">
       <label><span class="req">Nome</span>
-        <input type="text" name="name" maxlength="160" required value="<?= e($open['name']) ?>"></label>
+        <input type="text" name="name" maxlength="160" required value="<?= e($ed['name']) ?>"></label>
       <label>Descrição
-        <input type="text" name="description" maxlength="500" value="<?= e((string)$open['description']) ?>"></label>
+        <input type="text" name="description" maxlength="500" value="<?= e($ed['description']) ?>"></label>
     </div>
     <label style="display:flex;align-items:center;gap:8px">
       <input type="checkbox" name="is_active" style="width:auto;margin:0"
-             <?= (int)$open['is_active'] === 1 ? 'checked' : '' ?>>
+             <?= $ed['is_active'] ? 'checked' : '' ?>>
       Visível para os utilizadores
     </label>
     <button class="primary" type="submit">Guardar</button>
@@ -248,9 +265,11 @@ layout_head('Aplicações', 'app', '../');
     <input type="hidden" name="action" value="create">
     <div class="grid2">
       <label><span class="req">Nome</span>
-        <input type="text" name="name" maxlength="160" required placeholder="ex.: Planeamento de obras"></label>
+        <input type="text" name="name" maxlength="160" required value="<?= e($novo['name']) ?>"
+               placeholder="ex.: Planeamento de obras"></label>
       <label>Descrição
-        <input type="text" name="description" maxlength="500" placeholder="uma linha, mostrada no ecrã inicial"></label>
+        <input type="text" name="description" maxlength="500" value="<?= e($novo['description']) ?>"
+               placeholder="uma linha, mostrada no ecrã inicial"></label>
     </div>
     <label><span class="req">Ficheiro HTML</span>
       <input type="file" name="file" accept=".html,.htm" required></label>
