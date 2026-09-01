@@ -37,17 +37,17 @@ $org     = app_name();
 <style>
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;display:flex;flex-direction:column;background:#0f172a;
+body{margin:0;display:flex;flex-direction:column;background:#5c0019;
      font:13px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.bar{flex:0 0 auto;background:#0f172a;color:#fff;padding:8px 14px;display:flex;align-items:center;
+.bar{flex:0 0 auto;background:#5c0019;color:#fff;padding:8px 14px;display:flex;align-items:center;
      gap:12px;flex-wrap:wrap}
-.bar a{color:#cbd5e1;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px}
+.bar a{color:rgba(255,255,255,.75);text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px}
 .bar a:hover{background:rgba(255,255,255,.1);color:#fff}
 .bar .name{font-weight:600;font-size:14px}
 .bar .plate{background:#fff;border-radius:6px;padding:4px 7px;display:flex;align-items:center;flex:none}
 .bar .plate img{height:18px;width:auto;display:block}
-.bar .sep{color:#475569}
-.bar .who{margin-left:auto;color:#94a3b8;font-size:12px}
+.bar .sep{color:rgba(255,255,255,.35)}
+.bar .who{margin-left:auto;color:rgba(255,255,255,.6);font-size:12px}
 iframe{flex:1 1 auto;width:100%;border:0;background:#fff;display:block}
 .err{padding:40px;color:#fff;text-align:center}
 </style>
@@ -75,7 +75,7 @@ iframe{flex:1 1 auto;width:100%;border:0;background:#fff;display:block}
   <div class="err">
     Esta aplicação ainda não tem ficheiro HTML.
     <?php if (can('apps.manage')): ?>
-      <br><a href="admin/apps.php?id=<?= (int)$app['id'] ?>" style="color:#93c5fd">Enviar agora</a>
+      <br><a href="admin/apps.php?id=<?= (int)$app['id'] ?>" style="color:#f8d000">Enviar agora</a>
     <?php endif; ?>
   </div>
 <?php endif; ?>

@@ -196,7 +196,7 @@ layout_head('Verificação em duas etapas', 'auth');
         com tipo de conta <b>baseada em tempo (TOTP)</b>, e copie a chave:
       </p>
       <div class="secret"><?= e(totp_secret_pretty((string)$_SESSION['mfa_enroll_secret'])) ?></div>
-      <p class="mono" style="word-break:break-all;font-size:12px;background:#f8fafc;padding:10px;border-radius:6px;margin-top:10px">
+      <p class="mono" style="word-break:break-all;font-size:12px;background:var(--surface);padding:10px;border-radius:6px;margin-top:10px">
         <?= e($uri) ?>
       </p>
     </details>

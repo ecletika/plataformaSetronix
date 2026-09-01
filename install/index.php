@@ -268,26 +268,26 @@ $blocking = array_filter($checks, static fn($c) => !$c[1] && strpos($c[2], 'opci
 <meta name="robots" content="noindex,nofollow">
 <title>Instalação · Plataforma Setronix</title>
 <style>
-body{margin:0;font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f1f5f9;color:#0f172a}
+body{margin:0;font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f7f5f6;color:#1b1016}
 .wrap{max-width:720px;margin:40px auto;padding:0 18px}
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:18px}
 h1{font-size:20px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}
 h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin:18px 0 8px}
 .muted{color:#64748b;font-size:13px}
 label{display:block;margin-bottom:12px;font-size:13px}
-input,select{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;margin-top:4px}
-button{font:inherit;padding:10px 16px;border-radius:8px;border:1px solid #2563eb;background:#2563eb;color:#fff;cursor:pointer}
-button.ghost{background:#fff;color:#0f172a;border-color:#cbd5e1}
+input,select{width:100%;padding:9px 10px;border:1px solid #d6cdd1;border-radius:8px;font:inherit;margin-top:4px}
+button{font:inherit;padding:10px 16px;border-radius:8px;border:1px solid #a80030;background:#a80030;color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:#1b1016;border-color:#d6cdd1}
 .alert{padding:11px 13px;border-radius:8px;margin-bottom:14px;font-size:13px;border:1px solid}
 .err{background:#fef2f2;border-color:#fecaca;color:#991b1b}
 .ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
 .warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
-.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.info{background:#fdf0f3;border-color:#f2c4d0;color:#7a0022}
 table{width:100%;border-collapse:collapse;font-size:13px}
 td,th{padding:7px 8px;border-bottom:1px solid #e2e8f0;text-align:left}
 .steps{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
-.steps span{font-size:12px;padding:5px 10px;border-radius:99px;background:#e2e8f0;color:#475569}
-.steps span.on{background:#2563eb;color:#fff}
+.steps span{font-size:12px;padding:5px 10px;border-radius:99px;background:#e2e8f0;color:#6b5c62}
+.steps span.on{background:#a80030;color:#fff}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospace,Consolas,monospace}
 </style>

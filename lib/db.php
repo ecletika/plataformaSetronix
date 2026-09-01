@@ -76,7 +76,7 @@ function db_fail_missing_table(PDOException $ex): void
     $t = htmlspecialchars($table, ENT_QUOTES, 'UTF-8');
     echo '<!doctype html><meta charset="utf-8"><title>Base de dados incompleta</title>'
        . '<style>body{font:15px/1.6 system-ui,Segoe UI,sans-serif;margin:40px auto;max-width:640px;'
-       . 'color:#0f172a;padding:0 18px}h1{font-size:20px}code{background:#f1f5f9;padding:2px 6px;'
+       . 'color:#1b1016;padding:0 18px}h1{font-size:20px}code{background:#f1f5f9;padding:2px 6px;'
        . 'border-radius:4px}li{margin-bottom:8px}</style>'
        . '<h1>A base de dados não corresponde à versão do código</h1>'
        . '<p>Falta a tabela <code>' . $t . '</code>.</p>'

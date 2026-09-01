@@ -140,6 +140,24 @@ O nome que aparece no cabeçalho, no ecrã de entrada e no título do separador
 altera-se em **Administração → Resumo → Identificação**. Fica guardado na base
 de dados, não no `config.php` — não é preciso mexer em ficheiros no servidor.
 
+### Cores
+
+A paleta vem do próprio ficheiro do logótipo, medida pixel a pixel:
+
+| Cor | Uso |
+|---|---|
+| `#5C0019` | Barra de topo |
+| `#A80030` carmim do letreiro | Botões, ligações, foco, ícones — 7,76:1 sobre branco |
+| `#F89818` laranja | Realce: risco da linha selecionada, fundos de destaque |
+| `#F8D000` amarelo | Só decorativo (contornos de etiqueta) |
+
+> O laranja tem 2,21:1 e o amarelo 1,50:1 sobre branco. **Nunca levam texto por
+> cima nem servem de fundo a botões** — só como traço ou fundo com texto escuro.
+> O carmim é o único da marca que passa o critério de contraste para texto.
+
+Como o carmim é também a família do vermelho de apagar, as ações distinguem-se
+pela **forma**: as normais são botões cheios, as destrutivas são contornadas.
+
 O logótipo é `assets/logo-setronix.png`, servido pela própria plataforma e não
 pelo site institucional: assim o painel não fica dependente de um pedido
 externo para se apresentar. Para o trocar, substitua o ficheiro mantendo o nome.

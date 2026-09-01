@@ -20,9 +20,9 @@ layout_head('Aplicações', 'app');
 .applist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .appcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;
   display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;
-  box-shadow:0 1px 2px rgba(15,23,42,.04);transition:border-color .12s,box-shadow .12s}
-.appcard:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(37,99,235,.12)}
-.appcard .icon{width:38px;height:38px;border-radius:10px;background:#eff6ff;color:var(--accent);
+  box-shadow:0 1px 2px rgba(27,16,22,.05);transition:border-color .12s,box-shadow .12s}
+.appcard:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(168,0,48,.14)}
+.appcard .icon{width:38px;height:38px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
   display:grid;place-items:center;font-weight:700;font-size:15px}
 .appcard b{font-size:15px}
 .appcard .meta{margin-top:auto;font-size:12px;color:var(--muted)}
