@@ -76,6 +76,36 @@ tbody tr:hover{background:#f8fafc}
 code,.mono{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
 .secret{font-family:ui-monospace,Consolas,monospace;font-size:19px;letter-spacing:2px;background:#f8fafc;
   border:1px dashed #94a3b8;border-radius:8px;padding:14px;text-align:center;user-select:all;word-break:break-all}
+/* Lista de utilizadores: linha selecionável + ficha por baixo */
+tr.rowlink{cursor:pointer}
+tr.rowlink td:first-child{box-shadow:inset 3px 0 0 transparent}
+tr.rowlink[aria-current="true"]{background:#eff6ff}
+tr.rowlink[aria-current="true"]:hover{background:#e6f0ff}
+tr.rowlink[aria-current="true"] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+tr.rowlink a.rowname{color:var(--ink);text-decoration:none;font-weight:600}
+tr.rowlink a.rowname:hover{color:var(--accent);text-decoration:underline}
+.ficha-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:2px}
+.ficha-head h3{margin:0;font-size:17px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.ficha-sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+.ficha-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(236px,1fr));gap:14px}
+.dbox{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.dbox .t{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+.dbox p{margin:0;font-size:12.5px;color:var(--muted)}
+.dbox form{margin:0}
+/* O interruptor fica de fora: não é um botão de largura total. */
+.dbox .btn,.dbox button:not(.sw){width:100%;text-align:center}
+.dbox .spacer{margin-top:auto}
+/* Interruptor: é um botão de submissão, funciona sem JavaScript */
+.sw,.dbox .sw{position:relative;width:40px;min-width:40px;height:23px;border-radius:999px;background:#cbd5e1;
+  border:0;cursor:pointer;padding:0;flex:none;transition:background .18s ease}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 2px rgba(15,23,42,.3);transition:transform .18s ease}
+.sw[aria-checked="true"]{background:var(--accent)}
+.sw[aria-checked="true"]::after{transform:translateX(17px)}
+.sw:hover{filter:brightness(.97)}
+.swrow{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink)}
+.swrow form{margin:0;display:flex}
+
 /* Dois painéis de transferência (ver transfer_list()) */
 .tr{display:grid;grid-template-columns:1fr 108px 1fr;gap:12px;align-items:start}
 .tr-panel{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;min-width:0}

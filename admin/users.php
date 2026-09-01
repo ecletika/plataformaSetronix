@@ -121,17 +121,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             q('DELETE FROM mfa_recovery_codes WHERE user_id = ?', [$id]);
             audit('mfa_reset', 'user', $id, 'MFA reposto por administrador: ' . $target['username']);
             flash('ok', 'MFA removido. O utilizador irá associar um novo dispositivo no próximo início de sessão.');
-            redirect('users.php');
+            redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'toggle_mfa_required') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $novo = (int)$target['mfa_required'] === 1 ? 0 : 1;
+            q('UPDATE users SET mfa_required = ? WHERE id = ?', [$novo, $id]);
+            audit('update', 'user', $id,
+                  ($novo ? 'MFA passa a ser exigido a ' : 'MFA deixa de ser exigido a ') . $target['username']);
+            flash('ok', $novo
+                ? 'O MFA passa a ser exigido a ' . $target['username'] . ' no próximo início de sessão.'
+                : 'O MFA deixa de ser exigido a ' . $target['username'] . '.');
+            redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'toggle_active') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $novo = (int)$target['is_active'] === 1 ? 0 : 1;
+            if ($novo === 0) {
+                if ((int)$target['id'] === (int)$me['id']) {
+                    throw new RuntimeException('Não pode desativar a sua própria conta.');
+                }
+                if ($target['role'] === 'admin') {
+                    $admins = (int)q_val("SELECT COUNT(*) FROM users
+                                           WHERE role = 'admin' AND is_active = 1 AND id <> ?", [$id]);
+                    if ($admins === 0) {
+                        throw new RuntimeException('Tem de existir pelo menos um administrador ativo.');
+                    }
+                }
+            }
+            q('UPDATE users SET is_active = ? WHERE id = ?', [$novo, $id]);
+            if ($novo === 0) {
+                q('UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL', [$id]);
+            }
+            audit('update', 'user', $id, ($novo ? 'Conta reativada: ' : 'Conta desativada: ') . $target['username']);
+            flash('ok', $novo
+                ? 'Conta de ' . $target['username'] . ' reativada.'
+                : 'Conta de ' . $target['username'] . ' desativada e sessões terminadas.');
+            redirect('users.php?ficha=' . $id);
         } elseif ($action === 'unlock') {
             q('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?', [$id]);
             audit('unlock', 'user', $id, 'Conta desbloqueada por administrador');
             flash('ok', 'Conta desbloqueada.');
-            redirect('users.php');
+            redirect('users.php?ficha=' . $id);
         } elseif ($action === 'revoke_sessions') {
             q('UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL', [$id]);
             audit('revoke_sessions', 'user', $id, 'Sessões terminadas por administrador');
             flash('ok', 'Sessões do utilizador terminadas.');
-            redirect('users.php');
+            redirect('users.php?ficha=' . $id);
         }
     } catch (Throwable $ex) {
         $error = $ex->getMessage();
@@ -181,6 +219,32 @@ foreach (q_all('SELECT app_id, COUNT(*) AS n FROM user_apps GROUP BY app_id') as
 
 $users = q_all('SELECT * FROM users ORDER BY is_active DESC, role, username');
 
+// Ficha da pessoa escolhida na tabela. Sem escolha, mostra-se a primeira —
+// evita o ecrã com um espaço vazio à espera de um clique.
+$fichaId = isset($_GET['ficha']) ? (int)$_GET['ficha'] : 0;
+if ($generatedPassword) {
+    // Acabou de ser gerada uma palavra-passe: fica na ficha desse utilizador.
+    $fichaId = (int)(q_val('SELECT id FROM users WHERE username = ?',
+                           [$generatedPassword['username']]) ?? $fichaId);
+}
+$ficha = null;
+foreach ($users as $u) {
+    if ((int)$u['id'] === $fichaId) {
+        $ficha = $u;
+        break;
+    }
+}
+if (!$ficha && $users) {
+    $ficha = $users[0];
+}
+$fichaSessoes = $ficha
+    ? (int)q_val('SELECT COUNT(*) FROM user_sessions WHERE user_id = ? AND revoked_at IS NULL
+                   AND last_seen_at > (NOW() - INTERVAL 12 HOUR)', [(int)$ficha['id']])
+    : 0;
+$fichaCodigos = $ficha && (int)$ficha['mfa_enabled'] === 1
+    ? mfa_recovery_codes_left((int)$ficha['id'])
+    : 0;
+
 layout_head('Utilizadores', 'app', '../');
 ?>
 <div class="wrap">
@@ -203,7 +267,7 @@ layout_head('Utilizadores', 'app', '../');
   </div>
 <?php endif; ?>
 
-<div class="card">
+<div class="card" id="form">
   <h2><?= $editing ? 'Editar utilizador' : 'Criar utilizador' ?></h2>
   <form method="post">
     <?= csrf_field() ?>
@@ -296,65 +360,175 @@ layout_head('Utilizadores', 'app', '../');
 
 <div class="card">
   <h2>Utilizadores (<?= count($users) ?>)</h2>
+  <p class="muted">Escolha uma linha para ver a ficha e agir sobre a conta.</p>
   <div class="scroll">
     <table>
       <thead>
-        <tr><th>Utilizador</th><th>Nome</th><th>Perfil</th><th>Estado</th><th>MFA</th>
-            <th>Último acesso</th><th>Ações</th></tr>
+        <tr><th>Utilizador</th><th>Nome</th><th>Perfil</th><th>Estado</th><th>MFA</th><th>Último acesso</th></tr>
       </thead>
       <tbody>
       <?php foreach ($users as $u):
-          $locked = !empty($u['locked_until']) && strtotime((string)$u['locked_until']) > time(); ?>
-        <tr>
-          <td class="mono"><?= e($u['username']) ?><br><span class="muted"><?= e($u['email']) ?></span></td>
+          $locked = !empty($u['locked_until']) && strtotime((string)$u['locked_until']) > time();
+          $sel    = $ficha && (int)$ficha['id'] === (int)$u['id']; ?>
+        <tr class="rowlink"<?= $sel ? ' aria-current="true"' : '' ?>>
+          <td class="mono">
+            <a class="rowname" href="users.php?ficha=<?= (int)$u['id'] ?>#ficha"><?= e($u['username']) ?></a>
+            <br><span class="muted"><?= e($u['email']) ?></span>
+          </td>
           <td><?= e($u['full_name']) ?></td>
           <td><span class="tag <?= e($u['role']) ?>"><?= e(ROLES[$u['role']] ?? $u['role']) ?></span></td>
           <td>
-            <?= (int)$u['is_active'] === 1 ? '<span class="tag on">Ativo</span>' : '<span class="tag off">Inativo</span>' ?>
+            <?= (int)$u['is_active'] === 1
+                ? '<span class="tag on">Ativo</span>'
+                : '<span class="tag off">Inativo</span>' ?>
             <?= $locked ? '<br><span class="tag off">Bloqueado</span>' : '' ?>
           </td>
-          <td><?= (int)$u['mfa_enabled'] === 1 ? '<span class="tag on">Ativo</span>' : '<span class="tag off">Por ativar</span>' ?></td>
-          <td class="muted mono"><?= e((string)($u['last_login_at'] ?? '—')) ?></td>
           <td>
-            <div class="actions">
-              <a class="btn" href="users.php?edit=<?= (int)$u['id'] ?>">Editar</a>
-              <form method="post" onsubmit="return confirm('Repor a palavra-passe de <?= e($u['username']) ?>?')">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="reset_password">
-                <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
-                <button type="submit">Repor palavra-passe</button>
-              </form>
-              <form method="post" onsubmit="return confirm('Remover o MFA de <?= e($u['username']) ?>? Vai ter de associar um novo dispositivo.')">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="reset_mfa">
-                <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
-                <button type="submit">Repor MFA</button>
-              </form>
-              <?php if ($locked): ?>
-                <form method="post">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="action" value="unlock">
-                  <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
-                  <button type="submit">Desbloquear</button>
-                </form>
-              <?php endif; ?>
-              <form method="post" onsubmit="return confirm('Terminar todas as sessões deste utilizador?')">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="revoke_sessions">
-                <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
-                <button type="submit">Terminar sessões</button>
-              </form>
-            </div>
+            <?php if ((int)$u['mfa_enabled'] === 1): ?>
+              <span class="tag on">Associado</span>
+            <?php else: ?>
+              <span class="tag off">Por associar</span>
+            <?php endif; ?>
+            <?php if ((int)$u['mfa_required'] === 1 || mfa_enforced_globally()): ?>
+              <br><span class="muted" style="font-size:11px">exigido</span>
+            <?php endif; ?>
           </td>
+          <td class="muted mono"><?= e((string)($u['last_login_at'] ?? '—')) ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody>
     </table>
   </div>
-  <p class="muted" style="margin-top:10px">
-    As contas não são apagadas — são desativadas, para que o log de alterações continue coerente.
+  <p class="muted" style="margin-top:12px">
+    As contas não são apagadas &mdash; são desativadas, para que o log de alterações continue coerente.
   </p>
 </div>
 
+<?php if ($ficha):
+    $fLocked = !empty($ficha['locked_until']) && strtotime((string)$ficha['locked_until']) > time();
+    $fMfa    = (int)$ficha['mfa_enabled'] === 1;
+    $fExige  = (int)$ficha['mfa_required'] === 1;
+    $fEu     = (int)$ficha['id'] === (int)$me['id'];
+    $accao   = static function (string $nome, int $id): void {
+        echo csrf_field()
+           . '<input type="hidden" name="action" value="' . e($nome) . '">'
+           . '<input type="hidden" name="id" value="' . $id . '">';
+    }; ?>
+<div class="card" id="ficha">
+  <div class="ficha-head">
+    <h3><?= e($ficha['full_name']) ?></h3>
+    <span class="tag <?= e($ficha['role']) ?>"><?= e(ROLES[$ficha['role']] ?? $ficha['role']) ?></span>
+    <?= (int)$ficha['is_active'] === 1 ? '' : '<span class="tag off">Conta desativada</span>' ?>
+    <?= $fLocked ? '<span class="tag off">Bloqueada por tentativas</span>' : '' ?>
+  </div>
+  <p class="ficha-sub mono"><?= e($ficha['username']) ?> &middot; <?= e($ficha['email']) ?></p>
+
+  <div class="ficha-grid">
+
+    <div class="dbox">
+      <p class="t">Verificação em duas etapas</p>
+      <p style="font-size:13px;color:var(--ink)">
+        <?php if ($fMfa): ?>
+          <span class="tag on">Associado</span>
+          <span class="muted">desde <?= e(substr((string)$ficha['mfa_confirmed_at'], 0, 10)) ?></span>
+        <?php else: ?>
+          <span class="tag off">Por associar</span>
+        <?php endif; ?>
+      </p>
+      <?php if ($fMfa): ?>
+        <p><?= $fichaCodigos ?> código(s) de recuperação por usar.</p>
+      <?php else: ?>
+        <p>
+          Ainda não leu o código QR. Só a própria pessoa o pode fazer, em
+          <b>A minha conta</b> &mdash; o administrador não consegue associar o dispositivo por ela.
+        </p>
+      <?php endif; ?>
+
+      <?php if (mfa_enforced_globally()): ?>
+        <p><b>Exigido a todas as contas</b> pela política de segurança.</p>
+      <?php else: ?>
+        <div class="swrow">
+          <form method="post"><?php $accao('toggle_mfa_required', (int)$ficha['id']); ?>
+            <button class="sw" type="submit" role="switch" aria-checked="<?= $fExige ? 'true' : 'false' ?>"
+                    aria-label="<?= $fExige ? 'Deixar de exigir' : 'Exigir' ?> MFA a <?= e($ficha['username']) ?>"></button>
+          </form>
+          <span><?= $fExige ? 'exigido a esta conta' : 'opcional para esta conta' ?></span>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($fMfa): ?>
+        <div class="spacer"></div>
+        <form method="post" onsubmit="return confirm('Remover o MFA de <?= e($ficha['username']) ?>? Vai ter de associar um novo dispositivo.')">
+          <?php $accao('reset_mfa', (int)$ficha['id']); ?>
+          <button type="submit">Repor MFA (novo dispositivo)</button>
+        </form>
+      <?php endif; ?>
+    </div>
+
+    <div class="dbox">
+      <p class="t">Palavra-passe</p>
+      <p>
+        Gera uma nova, mostra-a uma única vez e obriga a alterá-la no próximo
+        início de sessão.
+      </p>
+      <div class="spacer"></div>
+      <form method="post" onsubmit="return confirm('Repor a palavra-passe de <?= e($ficha['username']) ?>?')">
+        <?php $accao('reset_password', (int)$ficha['id']); ?>
+        <button type="submit">Repor palavra-passe</button>
+      </form>
+      <?php if ($fLocked): ?>
+        <form method="post">
+          <?php $accao('unlock', (int)$ficha['id']); ?>
+          <button type="submit">Desbloquear conta</button>
+        </form>
+      <?php endif; ?>
+    </div>
+
+    <div class="dbox">
+      <p class="t">Sessões</p>
+      <p>
+        <?= $fichaSessoes ?> sessão(ões) aberta(s) nas últimas 12 horas.
+        Terminar fecha-as em todos os equipamentos.
+      </p>
+      <div class="spacer"></div>
+      <form method="post" onsubmit="return confirm('Terminar todas as sessões de <?= e($ficha['username']) ?>?')">
+        <?php $accao('revoke_sessions', (int)$ficha['id']); ?>
+        <button type="submit">Terminar sessões</button>
+      </form>
+    </div>
+
+    <div class="dbox">
+      <p class="t">Conta</p>
+      <p>
+        Perfil, dados pessoais e aplicações a que tem acesso alteram-se no
+        formulário no topo da página.
+      </p>
+      <div class="spacer"></div>
+      <a class="btn primary" href="users.php?edit=<?= (int)$ficha['id'] ?>#form">Editar dados</a>
+      <?php if (!$fEu): ?>
+        <form method="post" onsubmit="return confirm('<?= (int)$ficha['is_active'] === 1 ? 'Desativar' : 'Reativar' ?> a conta de <?= e($ficha['username']) ?>?')">
+          <?php $accao('toggle_active', (int)$ficha['id']); ?>
+          <button class="<?= (int)$ficha['is_active'] === 1 ? 'danger' : '' ?>" type="submit">
+            <?= (int)$ficha['is_active'] === 1 ? 'Desativar conta' : 'Reativar conta' ?>
+          </button>
+        </form>
+      <?php endif; ?>
+    </div>
+
+  </div>
 </div>
+<?php endif; ?>
+
+</div>
+<script>
+// A linha inteira segue a ligação do nome. Sem JavaScript, o nome
+// continua a ser uma ligação normal.
+document.querySelectorAll('tr.rowlink').forEach(function (tr) {
+  tr.addEventListener('click', function (ev) {
+    if (ev.target.closest('a, button, input, label')) { return; }
+    var link = tr.querySelector('a.rowname');
+    if (link) { window.location = link.href; }
+  });
+});
+</script>
 <?php layout_foot(); ?>

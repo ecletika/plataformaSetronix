@@ -152,7 +152,7 @@ Em **Administração → Resumo → Segurança**:
 
 | Definição | O que faz |
 |---|---|
-| Exigir MFA a todos | Ligado, ninguém entra sem associar uma aplicação autenticadora. Desligado, cada pessoa decide em *A minha conta*. |
+| Exigir MFA a todos | Ligado, ninguém entra sem associar uma aplicação autenticadora. Desligado, cada pessoa decide em *A minha conta*, e o administrador pode exigi-lo conta a conta na ficha do utilizador. |
 | Comprimento mínimo | Caracteres exigidos numa palavra-passe nova. Além do comprimento, é sempre exigida pelo menos uma letra e um algarismo. |
 
 Desligar a exigência **não retira o MFA a ninguém**: quem já tem um dispositivo
@@ -167,7 +167,21 @@ quem precisa (por exemplo, aos administradores).
 > mantém a conta fechada quando isso acontece. Ambas as definições existem para
 > serem apertadas mais tarde sem alterar código.
 
-## 7. Perfis e permissões
+## 7. A ficha do utilizador
+
+Em **Administração → Utilizadores**, a tabela serve para procurar e ler — não tem
+botões. Escolha uma linha e a ficha abre por baixo, com as ações agrupadas:
+verificação em duas etapas, palavra-passe, sessões e conta.
+
+Sobre o MFA, convém saber o que cada um pode fazer:
+
+| | |
+|---|---|
+| **Associar o dispositivo** | Só a própria pessoa, em *A minha conta*. Exige ler o código QR no telemóvel dela. |
+| **Exigir** | O administrador, na ficha. Obriga aquela conta a associar antes de entrar. |
+| **Repor** | O administrador, na ficha. Apaga o dispositivo — para quando alguém troca ou perde o telemóvel. Só aparece se houver dispositivo associado. |
+
+## 8. Perfis e permissões
 
 | Perfil | Pode |
 |---|---|
@@ -176,7 +190,7 @@ quem precisa (por exemplo, aos administradores).
 | **Utilizador** | abrir as aplicações publicadas |
 | **Consulta** | abrir as aplicações publicadas |
 
-## 8. Onde ficam os dados das aplicações
+## 9. Onde ficam os dados das aplicações
 
 A plataforma guarda o **ficheiro** da aplicação; **não** guarda os dados que a
 aplicação produz. Uma página HTML autónoma normalmente usa o `localStorage` do
@@ -186,7 +200,7 @@ não são partilhados entre pessoas e desaparecem se o browser for limpo.
 Para que os dados sejam centrais e partilhados, a aplicação tem de falar com um
 servidor. Isso é trabalho adicional, fora do âmbito desta casca.
 
-## 9. Nota sobre o HTML enviado
+## 10. Nota sobre o HTML enviado
 
 O ficheiro HTML enviado corre na mesma origem que a plataforma, com a sessão do
 utilizador iniciada. Isso é o que permite que o `localStorage` da aplicação
