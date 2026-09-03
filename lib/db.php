@@ -3,6 +3,21 @@
 
 declare(strict_types=1);
 
+/** Cor da barra de topo por omissão, quando o utilizador não escolheu outra. */
+const TOPBAR_DEFAULT = '#555555';
+
+/** As cores oferecidas em "A minha conta". A última é sempre a da marca. */
+const TOPBAR_CHOICES = [
+    '#555555' => 'Cinzento',
+    '#1b1016' => 'Preto',
+    '#334155' => 'Ardósia',
+    '#0f2a4a' => 'Azul-marinho',
+    '#14532d' => 'Verde-escuro',
+    '#3f2a56' => 'Roxo',
+    '#7a3b00' => 'Castanho',
+    '#5c0019' => 'Carmim Setronix',
+];
+
 /** Devolve a ligação PDO partilhada (lazy). */
 function db(): PDO
 {
