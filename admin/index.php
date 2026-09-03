@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'segur
               ['mfa_enforce_all' => $exigirMfa, 'password_min_length' => $minPw]);
         flash('ok', $exigirMfa === '1'
             ? 'O MFA passa a ser exigido a todos os utilizadores.'
-            : 'O MFA passa a ser opcional. Quem já o tem activo continua a usá-lo.');
+            : 'O MFA passa a ser opcional. Quem já o tem ativo continua a usá-lo.');
         redirect('index.php');
     }
 }
@@ -115,7 +115,7 @@ layout_head('Administração', 'app', '../');
       <span>
         <b>Exigir verificação em duas etapas a todos</b><br>
         <span class="muted">
-          Desligado, cada pessoa decide se a activa em "A minha conta". Quem já a tem
+          Desligado, cada pessoa decide se a ativa em "A minha conta". Quem já a tem
           associada continua a ter de introduzir o código — desligar isto não retira
           o MFA a ninguém.
         </span>

@@ -64,7 +64,7 @@ function app_version_find(int $appId, int $versionId): ?array
     return q_one('SELECT * FROM app_versions WHERE id = ? AND app_id = ?', [$versionId, $appId]);
 }
 
-/** Versão activa de uma aplicação, ou null se ainda não tiver ficheiro. */
+/** Versão ativa de uma aplicação, ou null se ainda não tiver ficheiro. */
 function app_current_version(array $app): ?array
 {
     if (empty($app['current_version_id'])) {
@@ -287,7 +287,7 @@ function app_create(string $name, ?string $description, array $file): array
     return app_find($appId) ?? [];
 }
 
-/** Repõe uma versão anterior como versão activa. */
+/** Repõe uma versão anterior como versão ativa. */
 function app_rollback(int $appId, int $versionId): array
 {
     $v = app_version_find($appId, $versionId);
@@ -301,7 +301,7 @@ function app_rollback(int $appId, int $versionId): array
     return $v;
 }
 
-/** Apaga uma versão (nunca a activa). */
+/** Apaga uma versão (nunca a ativa). */
 function app_version_delete(int $appId, int $versionId): array
 {
     $app = app_find($appId);

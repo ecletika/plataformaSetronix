@@ -84,6 +84,10 @@ lib/qrcode.php         Gerador de códigos QR (para a ativação do MFA)
 lib/audit.php          Log de alterações
 lib/helpers.php        Utilitários (CSRF, cifra, escape, ...)
 lib/layout.php         Cabeçalho, rodapé e estilos partilhados
+lib/markdown.php       Renderizador do manual (subconjunto de Markdown)
+
+ajuda.php              Manual dentro da plataforma (ícone i na barra)
+ajuda.md               Texto do manual — edite este ficheiro para o alterar
 
 assets/logo-setronix.png  Logótipo, servido pela própria plataforma
 
@@ -104,7 +108,7 @@ storage/apps/          Ficheiros HTML das aplicações (fora do alcance da web)
 3. A aplicação passa a aparecer no ecrã inicial de todos os utilizadores.
 
 Para **substituir**, abra a aplicação em *Gerir* e envie o ficheiro novo: fica
-como versão activa e a anterior continua guardada. Se a versão nova tiver um
+como versão ativa e a anterior continua guardada. Se a versão nova tiver um
 problema, basta **Repor** a anterior.
 
 Para **esconder sem apagar**, desmarque "Visível para os utilizadores".
@@ -140,7 +144,17 @@ O nome que aparece no cabeçalho, no ecrã de entrada e no título do separador
 altera-se em **Administração → Resumo → Identificação**. Fica guardado na base
 de dados, não no `config.php` — não é preciso mexer em ficheiros no servidor.
 
-### Cores
+### Cor da barra de topo
+
+Cada utilizador escolhe a sua em **A minha conta → Cor da barra de topo**: oito
+cores predefinidas ou qualquer outra. A escolha é pessoal e não altera o que os
+outros veem. Por omissão é cinzento ().
+
+A cor do texto da barra é decidida no servidor pela luminosidade da cor
+escolhida — passa a preto sobre fundos claros e a branco sobre escuros — para
+que nenhuma escolha deixe a barra ilegível.
+
+### Cores da marca
 
 A paleta vem do próprio ficheiro do logótipo, medida pixel a pixel:
 

@@ -142,6 +142,66 @@ function app_name(): string
     return $cache = ($nome !== '' ? $nome : 'Planeamento Setronix');
 }
 
+/**
+ * Preferência pessoal de um utilizador.
+ *
+ * Vive à parte das definições globais: cada pessoa escolhe a sua e não
+ * afeta mais ninguém.
+ */
+function user_pref(string $key, ?string $default = null): ?string
+{
+    $u = current_user();
+    if (!$u) {
+        return $default;
+    }
+    try {
+        $v = q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                   [(int)$u['id'], $key]);
+    } catch (Throwable $ex) {
+        return $default;
+    }
+    return $v === null ? $default : (string)$v;
+}
+
+/** Grava uma preferência pessoal. */
+function user_pref_set(int $userId, string $key, string $value): void
+{
+    q('INSERT INTO user_prefs (user_id, pkey, pvalue) VALUES (?,?,?)
+       ON DUPLICATE KEY UPDATE pvalue = VALUES(pvalue)', [$userId, $key, $value]);
+}
+
+/**
+ * Cor da barra de topo. Cada utilizador escolhe a sua em "A minha conta".
+ */
+function topbar_color(): string
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $c = (string)user_pref('topbar_color', '');
+    if (!preg_match('/^#[0-9a-f]{6}$/i', $c)) {
+        $c = TOPBAR_DEFAULT;
+    }
+    return $cache = strtolower($c);
+}
+
+/**
+ * Preto ou branco por cima de uma cor, conforme o que se lê melhor.
+ * Sem isto, uma cor clara escolhida por engano deixava a barra ilegível.
+ */
+function ink_on(string $hex): string
+{
+    $rgb = [hexdec(substr($hex, 1, 2)), hexdec(substr($hex, 3, 2)), hexdec(substr($hex, 5, 2))];
+    $lin = array_map(static function (int $v): float {
+        $x = $v / 255;
+        return $x <= 0.03928 ? $x / 12.92 : pow(($x + 0.055) / 1.055, 2.4);
+    }, $rgb);
+    $lum = 0.2126 * $lin[0] + 0.7152 * $lin[1] + 0.0722 * $lin[2];
+    // Contraste contra branco vs contra preto: fica o maior.
+    return (1.05 / ($lum + 0.05)) >= (($lum + 0.05) / 0.05) ? '#ffffff' : '#1b1016';
+}
+
 /** Grava uma definição. */
 function setting_set(string $key, string $value): void
 {

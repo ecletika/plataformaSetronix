@@ -3,7 +3,7 @@
  * Ecrã de autenticação — passo 2 (MFA / TOTP).
  *
  * Trata dois casos:
- *  a) Inscrição: o utilizador ainda não tem MFA activo → mostra o segredo,
+ *  a) Inscrição: o utilizador ainda não tem MFA ativo → mostra o segredo,
  *     pede confirmação com um código e entrega os códigos de recuperação.
  *  b) Verificação: o utilizador já tem MFA → pede o código de 6 dígitos
  *     (ou um código de recuperação).
@@ -16,7 +16,7 @@ require_once __DIR__ . '/lib/qrcode.php';
 if (empty($_SESSION['uid'])) {
     redirect('login.php');
 }
-// Com sessão completa só se entra aqui para activar o MFA de livre vontade
+// Com sessão completa só se entra aqui para ativar o MFA de livre vontade
 // (a partir de "A minha conta"), e só quem ainda não o tem.
 $voluntario = !empty($_SESSION['mfa_passed']) && isset($_GET['ativar']);
 if (!empty($_SESSION['mfa_passed']) && !$voluntario) {
@@ -36,7 +36,7 @@ $enrolled = (int)$user['mfa_enabled'] === 1 && !empty($user['mfa_secret']);
 if ($voluntario && $enrolled) {
     redirect('perfil.php');
 }
-// Pode dispensar-se a activação? Só quando ninguém a exige a este utilizador.
+// Pode dispensar-se a ativação? Só quando ninguém a exige a este utilizador.
 $opcional = !$enrolled && !mfa_required_for($user);
 
 $error = '';
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // O utilizador confirmou que guardou os códigos de recuperação.
         unset($_SESSION['show_recovery_codes']);
         if (!empty($_SESSION['mfa_passed'])) {
-            flash('ok', 'Verificação em duas etapas activada.');
+            flash('ok', 'Verificação em duas etapas ativada.');
             redirect('perfil.php');
         }
         auth_complete_login($user);
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $showCodes = $codes;
 
             log_attempt($user['username'], true, 'mfa', 'enrolled');
-            audit('mfa_enroll', 'user', $user['id'], 'MFA activado', null, null,
+            audit('mfa_enroll', 'user', $user['id'], 'MFA ativado', null, null,
                   (int)$user['id'], $user['username']);
         }
     } elseif ($action === 'verify') {

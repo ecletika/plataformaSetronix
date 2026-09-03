@@ -93,7 +93,7 @@ function require_login(string $permission = 'view'): array
     return $u;
 }
 
-/** Verifica limites de inactividade e duração absoluta. */
+/** Verifica limites de inatividade e duração absoluta. */
 function session_still_valid(): bool
 {
     global $CONFIG;
@@ -110,7 +110,7 @@ function session_still_valid(): bool
     return true;
 }
 
-/** Actualiza o carimbo de actividade da sessão. */
+/** Atualiza o carimbo de atividade da sessão. */
 function session_touch(): void
 {
     $_SESSION['last_seen'] = time();
@@ -351,7 +351,7 @@ function mfa_enforced_globally(): bool
  * Este utilizador tem de passar pelo MFA?
  *
  * Quem já associou um dispositivo verifica sempre: desligar a exigência
- * geral não deve baixar a proteção de quem já a tinha activa.
+ * geral não deve baixar a proteção de quem já a tinha ativa.
  */
 function mfa_required_for(array $user): bool
 {

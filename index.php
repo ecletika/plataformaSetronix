@@ -44,12 +44,7 @@ layout_head('Aplicações', 'app');
     </div>
   </div>
 <?php else: ?>
-  <div class="actions" style="margin-bottom:14px">
-    <h2 style="margin:0;font-size:17px">Aplicações</h2>
-    <?php if (can('apps.manage')): ?>
-      <a class="btn" style="margin-left:auto" href="admin/apps.php">Gerir aplicações</a>
-    <?php endif; ?>
-  </div>
+  <h2 style="margin:0 0 14px;font-size:17px">Aplicações</h2>
 
   <div class="applist">
     <?php foreach ($apps as $app):

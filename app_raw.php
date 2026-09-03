@@ -7,7 +7,7 @@
  * vive em storage/apps/, pasta bloqueada pelo .htaccess, por isso esta é a
  * única forma de o obter — e exige sessão iniciada.
  *
- * ?id=N              versão activa
+ * ?id=N              versão ativa
  * ?id=N&v=ID         uma versão concreta (pré-visualização, só para gestores)
  */
 

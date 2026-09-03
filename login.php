@@ -58,14 +58,6 @@ layout_head('Entrar', 'auth');
       <button class="primary" type="submit" style="width:100%">Entrar</button>
     </form>
 
-    <p class="muted" style="margin-top:16px">
-      <?php if (mfa_enforced_globally()): ?>
-        Após a palavra-passe será pedido o código de verificação em duas etapas (MFA).
-      <?php else: ?>
-        Se tiver a verificação em duas etapas activa, será pedido o código a seguir.
-      <?php endif; ?>
-      Se perdeu o acesso, contacte um administrador da plataforma.
-    </p>
   </div>
 </div>
 <?php layout_foot(); ?>

@@ -27,6 +27,8 @@ if (!$app || !user_can_open_app((int)$user['id'], $app, can('apps.manage'))) {
 $version = app_current_version($app);
 $src     = 'app_raw.php?id=' . (int)$app['id'] . '&t=' . (int)($version['id'] ?? 0);
 $org     = app_name();
+$bar     = topbar_color();
+$bark    = ink_on($bar);
 ?><!doctype html>
 <html lang="pt-PT">
 <head>
@@ -37,17 +39,17 @@ $org     = app_name();
 <style>
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;display:flex;flex-direction:column;background:#5c0019;
+body{margin:0;display:flex;flex-direction:column;background:<?= e($bar) ?>;
      font:13px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.bar{flex:0 0 auto;background:#5c0019;color:#fff;padding:8px 14px;display:flex;align-items:center;
+.bar{flex:0 0 auto;background:<?= e($bar) ?>;color:<?= e($bark) ?>;padding:8px 14px;display:flex;align-items:center;
      gap:12px;flex-wrap:wrap}
-.bar a{color:rgba(255,255,255,.75);text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px}
-.bar a:hover{background:rgba(255,255,255,.1);color:#fff}
+.bar a{color:<?= e($bark) ?>;opacity:.78;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px}
+.bar a:hover{background:rgba(127,127,127,.25);opacity:1}
 .bar .name{font-weight:600;font-size:14px}
 .bar .plate{background:#fff;border-radius:6px;padding:4px 7px;display:flex;align-items:center;flex:none}
 .bar .plate img{height:18px;width:auto;display:block}
-.bar .sep{color:rgba(255,255,255,.35)}
-.bar .who{margin-left:auto;color:rgba(255,255,255,.6);font-size:12px}
+.bar .sep{color:<?= e($bark) ?>;opacity:.35}
+.bar .who{margin-left:auto;color:<?= e($bark) ?>;opacity:.62;font-size:12px}
 iframe{flex:1 1 auto;width:100%;border:0;background:#fff;display:block}
 .err{padding:40px;color:#fff;text-align:center}
 </style>

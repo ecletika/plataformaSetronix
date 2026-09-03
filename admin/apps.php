@@ -3,7 +3,7 @@
  * Gestão das aplicações HTML: enviar, substituir, repor versões, remover.
  *
  * Cada aplicação é um ficheiro .html autónomo. Substituir a aplicação é
- * simplesmente enviar um ficheiro novo: fica como versão activa e a
+ * simplesmente enviar um ficheiro novo: fica como versão ativa e a
  * anterior continua guardada, pronta a ser reposta.
  */
 
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'rollback') {
             $v = app_rollback($id, (int)($_POST['version_id'] ?? 0));
             audit('update', 'app', $id, 'Reposta a versão ' . (int)$v['version'] . ' de ' . $app['name']);
-            flash('ok', 'A versão ' . (int)$v['version'] . ' voltou a ser a versão activa.');
+            flash('ok', 'A versão ' . (int)$v['version'] . ' voltou a ser a versão ativa.');
             redirect('apps.php?id=' . $id);
         }
 
@@ -208,7 +208,7 @@ layout_head('Aplicações', 'app', '../');
         <?php foreach ($versions as $v): $isCur = $cur && (int)$cur['id'] === (int)$v['id']; ?>
           <tr>
             <td><b><?= (int)$v['version'] ?></b>
-                <?= $isCur ? ' <span class="tag on">activa</span>' : '' ?></td>
+                <?= $isCur ? ' <span class="tag on">ativa</span>' : '' ?></td>
             <td class="mono"><?= e($v['filename']) ?></td>
             <td class="muted"><?= e(human_bytes((int)$v['size_bytes'])) ?></td>
             <td class="muted mono"><?= e(substr((string)$v['created_at'], 0, 16)) ?></td>

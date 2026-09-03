@@ -3,6 +3,21 @@
 
 declare(strict_types=1);
 
+/** Cor da barra de topo por omissão, quando o utilizador não escolheu outra. */
+const TOPBAR_DEFAULT = '#555555';
+
+/** As cores oferecidas em "A minha conta". A última é sempre a da marca. */
+const TOPBAR_CHOICES = [
+    '#555555' => 'Cinzento',
+    '#1b1016' => 'Preto',
+    '#334155' => 'Ardósia',
+    '#0f2a4a' => 'Azul-marinho',
+    '#14532d' => 'Verde-escuro',
+    '#3f2a56' => 'Roxo',
+    '#7a3b00' => 'Castanho',
+    '#5c0019' => 'Carmim Setronix',
+];
+
 /**
  * @param string $title    Título da página.
  * @param string $variant  'app' (com barra de navegação) ou 'auth' (ecrã centrado).
@@ -11,7 +26,9 @@ declare(strict_types=1);
 function layout_head(string $title, string $variant = 'app', string $base = ''): void
 {
     global $CONFIG;
-    $org = $CONFIG['app']['org'] ?? 'Setronix';
+    $org  = $CONFIG['app']['org'] ?? 'Setronix';
+    $bar  = topbar_color();
+    $bark = ink_on($bar);
     ?><!doctype html>
 <html lang="pt-PT">
 <head>
@@ -26,7 +43,7 @@ function layout_head(string $title, string $variant = 'app', string $base = ''):
      #F8D000 amarelo. O laranja tem 2,21:1 e o amarelo 1,50:1 -- nunca
      levam texto por cima nem servem de fundo a botoes: so realce. */
   --bg:#f7f5f6; --panel:#ffffff; --ink:#1b1016; --muted:#6b5c62; --line:#e7dfe2;
-  --brand:#5c0019; --accent:#a80030; --accent-hi:#8a0027;
+  --accent:#a80030; --accent-hi:#8a0027;
   --accent-soft:#fdf0f3; --accent-line:#f2c4d0; --accent-ink:#7a0022;
   --rail:#f89818; --rail-soft:#fff6e8; --rail-line:#f8d000; --rail-ink:#7a4a00;
   --ok:#16a34a; --warn:#b45309; --danger:#8a0027;
@@ -35,16 +52,23 @@ function layout_head(string $title, string $variant = 'app', string $base = ''):
      liam-se como um resto da paleta anterior. */
   --surface:#faf7f8; --field:#d6cdd1; --ink-2:#3d3238; --ink-3:#6b5c62;
 }
+/* A barra de topo é escolhida por cada utilizador; a cor do texto vem
+   calculada do lado do servidor para nunca ficar ilegível. */
+:root{--brand:<?= e($bar) ?>; --brand-ink:<?= e($bark) ?>}
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
 a{color:var(--accent)}
-header.topbar{background:var(--brand);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+header.topbar{background:var(--brand);color:var(--brand-ink);padding:12px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 header.topbar h1{font-size:16px;margin:0;font-weight:600}
 header.topbar nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
-header.topbar nav a{color:rgba(255,255,255,.72);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
-header.topbar nav a:hover{background:rgba(255,255,255,.1);color:#fff}
-header.topbar nav a.active{background:rgba(255,255,255,.16);color:#fff}
-.who{font-size:12px;color:rgba(255,255,255,.6)}
+header.topbar nav a{color:var(--brand-ink);opacity:.72;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+header.topbar nav a:hover{background:rgba(127,127,127,.25);opacity:1}
+header.topbar nav a.active{background:rgba(127,127,127,.3);opacity:1}
+header.topbar nav a.info{display:grid;place-items:center;width:30px;height:30px;padding:0;
+  border-radius:50%;border:1px solid currentColor;opacity:.72}
+header.topbar nav a.info svg{width:17px;height:17px}
+header.topbar nav a.info:hover,header.topbar nav a.info.active{opacity:1;background:rgba(127,127,127,.25)}
+.who{font-size:12px;color:var(--brand-ink);opacity:.62}
 .wrap{max-width:1180px;margin:22px auto;padding:0 18px}
 .wrap.narrow{max-width:520px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px;
@@ -87,6 +111,24 @@ tbody tr:hover{background:var(--surface)}
 code,.mono{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
 .secret{font-family:ui-monospace,Consolas,monospace;font-size:19px;letter-spacing:2px;background:var(--surface);
   border:1px dashed #a99aa0;border-radius:8px;padding:14px;text-align:center;user-select:all;word-break:break-all}
+/* Escolha da cor da barra de topo, em "A minha conta" */
+.cores{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cores form{margin:0;display:flex}
+.cores button.cor{width:38px;height:38px;border-radius:10px;padding:0;cursor:pointer;
+  border:2px solid var(--line);position:relative}
+.cores button.cor:hover{border-color:var(--ink-3)}
+.cores button.cor[aria-current="true"]{border-color:var(--ink);box-shadow:0 0 0 3px var(--accent-soft)}
+.cores button.cor[aria-current="true"]::after{content:"";position:absolute;inset:0;margin:auto;
+  width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+
+/* Bolinha de presença na lista de utilizadores */
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none;
+  box-shadow:0 0 0 2px #fff}
+.dot.on{background:#16a34a}
+.dot.off{background:#c8bcc1}
+.presenca{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.presenca span.txt{font-size:12px;color:var(--muted)}
+
 /* Lista de utilizadores: linha selecionável + ficha por baixo */
 tr.rowlink{cursor:pointer}
 tr.rowlink td:first-child{box-shadow:inset 3px 0 0 transparent}
@@ -187,6 +229,13 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     $nav($base . 'perfil.php', 'A minha conta', $script === 'perfil.php');
     $nav($base . 'logout.php', 'Sair', false);
     ?>
+    <a class="info<?= $script === 'ajuda.php' ? ' active' : '' ?>" href="<?= e($base) ?>ajuda.php"
+       title="Ajuda e informações sobre a plataforma" aria-label="Ajuda">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
+           stroke-linecap="round" aria-hidden="true">
+        <circle cx="10" cy="10" r="7.6"/><path d="M10 9v4.6"/><path d="M10 6.3v.1"/>
+      </svg>
+    </a>
   </nav>
   <?php if ($u): ?>
     <div class="who"><?= e($u['full_name']) ?> · <?= e(ROLES[$u['role']] ?? $u['role']) ?></div>

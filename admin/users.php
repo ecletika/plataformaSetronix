@@ -219,6 +219,15 @@ foreach (q_all('SELECT app_id, COUNT(*) AS n FROM user_apps GROUP BY app_id') as
 
 $users = q_all('SELECT * FROM users ORDER BY is_active DESC, role, username');
 
+// Quem esta em linha: sessao por revogar, com atividade nos ultimos 5 minutos.
+// O carimbo e atualizado a cada pedido feito com sessao iniciada.
+$online = [];
+foreach (q_all('SELECT DISTINCT user_id FROM user_sessions
+                 WHERE revoked_at IS NULL AND mfa_passed = 1
+                   AND last_seen_at > (NOW() - INTERVAL 5 MINUTE)') as $r) {
+    $online[(int)$r['user_id']] = true;
+}
+
 // Ficha da pessoa escolhida na tabela. Sem escolha, mostra-se a primeira —
 // evita o ecrã com um espaço vazio à espera de um clique.
 $fichaId = isset($_GET['ficha']) ? (int)$_GET['ficha'] : 0;
@@ -364,7 +373,8 @@ layout_head('Utilizadores', 'app', '../');
   <div class="scroll">
     <table>
       <thead>
-        <tr><th>Utilizador</th><th>Nome</th><th>Perfil</th><th>Estado</th><th>MFA</th><th>Último acesso</th></tr>
+        <tr><th>Utilizador</th><th>Nome</th><th>Perfil</th><th>Estado</th><th>MFA</th>
+            <th>Presença</th><th>Último acesso</th></tr>
       </thead>
       <tbody>
       <?php foreach ($users as $u):
@@ -392,6 +402,13 @@ layout_head('Utilizadores', 'app', '../');
             <?php if ((int)$u['mfa_required'] === 1 || mfa_enforced_globally()): ?>
               <br><span class="muted" style="font-size:11px">exigido</span>
             <?php endif; ?>
+          </td>
+          <td>
+            <?php $emLinha = isset($online[(int)$u['id']]); ?>
+            <span class="presenca">
+              <span class="dot <?= $emLinha ? 'on' : 'off' ?>"></span>
+              <span class="txt"><?= $emLinha ? 'Em linha' : 'Ausente' ?></span>
+            </span>
           </td>
           <td class="muted mono"><?= e((string)($u['last_login_at'] ?? '—')) ?></td>
         </tr>

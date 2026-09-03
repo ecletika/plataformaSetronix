@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 /**
- * Regista uma acção no log de auditoria.
+ * Regista uma ação no log de auditoria.
  *
  * @param string      $action  login, logout, create, update, delete, install, ...
  * @param string|null $entity  user, app, system

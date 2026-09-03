@@ -141,6 +141,16 @@ CREATE TABLE IF NOT EXISTS user_apps (
   CONSTRAINT fk_user_apps_app  FOREIGN KEY (app_id)  REFERENCES apps(id)  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Preferencias pessoais (cor da barra de topo, por agora). Cada
+-- utilizador escolhe as suas e nao afetam mais ninguem.
+CREATE TABLE IF NOT EXISTS user_prefs (
+  user_id  INT UNSIGNED NOT NULL,
+  pkey     VARCHAR(48)  NOT NULL,
+  pvalue   VARCHAR(120) NULL,
+  PRIMARY KEY (user_id, pkey),
+  CONSTRAINT fk_user_prefs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------
 -- 3. AUDITORIA (log de alteracoes)
 -- ---------------------------------------------------------------------

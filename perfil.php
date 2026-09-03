@@ -34,6 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('ok', 'MFA removido. Volte a entrar para associar o novo dispositivo.');
             redirect('login.php');
         }
+    } elseif ($action === 'cor') {
+        $cor = strtolower(trim((string)($_POST['topbar_color'] ?? '')));
+        if (!preg_match('/^#[0-9a-f]{6}$/', $cor)) {
+            $error = 'Cor inválida.';
+        } else {
+            user_pref_set((int)$user['id'], 'topbar_color', $cor);
+            flash('ok', 'Cor da barra alterada.');
+            redirect('perfil.php');
+        }
     } elseif ($action === 'profile') {
         $fullName = trim((string)($_POST['full_name'] ?? ''));
         $email    = trim((string)($_POST['email'] ?? ''));
@@ -196,6 +205,37 @@ layout_head('A minha conta');
     </div>
   </div>
 <?php endif; ?>
+</div>
+
+<div class="card">
+  <h2>Cor da barra de topo</h2>
+  <p class="muted">
+    Só sua: cada pessoa escolhe a cor que quiser e não altera o que os outros veem.
+    O texto da barra passa a preto ou a branco conforme o que se lê melhor.
+  </p>
+  <div class="cores" style="margin-top:14px">
+    <?php $atual = topbar_color(); ?>
+    <?php foreach (TOPBAR_CHOICES as $hex => $nome): ?>
+      <form method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="cor">
+        <input type="hidden" name="topbar_color" value="<?= e($hex) ?>">
+        <button class="cor" type="submit" style="background:<?= e($hex) ?>"
+                title="<?= e($nome) ?>" aria-label="<?= e($nome) ?>"
+                <?= $atual === $hex ? 'aria-current="true"' : '' ?>></button>
+      </form>
+    <?php endforeach; ?>
+
+    <form method="post" class="actions" style="gap:6px">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="cor">
+      <input type="color" name="topbar_color" value="<?= e($atual) ?>"
+             style="width:44px;height:38px;padding:2px;margin:0;border-radius:10px;
+                    border:2px solid var(--line);background:#fff;cursor:pointer"
+             aria-label="Escolher outra cor">
+      <button type="submit">Usar esta</button>
+    </form>
+  </div>
 </div>
 
 <div class="card">
