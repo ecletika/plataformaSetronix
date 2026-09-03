@@ -117,6 +117,7 @@ layout_head('A minha conta');
     <div class="actions">
       <button class="primary" type="submit">Guardar alterações</button>
       <a class="btn" href="password.php">Alterar palavra-passe</a>
+      <a class="btn" href="index.php?todas=1">As minhas aplicações</a>
       <span class="muted" style="margin-left:auto">
         Último início de sessão:
         <?= $user['last_login_at']

@@ -62,18 +62,26 @@ header.topbar nav a.drop-t svg{width:15px;height:15px;transition:transform .15s 
   background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px;
   box-shadow:0 14px 34px -14px rgba(27,16,22,.5)}
 .navdrop[data-open="true"] .drop{display:block}
+.drop-row{display:flex;align-items:center;gap:2px;border-radius:7px}
+.drop-row:hover{background:var(--rail-soft)}
+.drop-row.aberta{background:var(--accent-soft)}
+.drop-row.aberta .nm{font-weight:600}
+.drop-row form{margin:0;display:flex}
 /* Especificidade acima de "header.topbar nav a", que de outra forma pinta
    estas ligações com a cor da barra — texto branco sobre fundo branco. */
-header.topbar nav .drop a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;
-  color:var(--ink);text-decoration:none;font-size:13.5px;opacity:1}
-header.topbar nav .drop a:hover{background:var(--rail-soft);color:var(--ink);opacity:1}
-header.topbar nav .drop a[aria-current="true"]{background:var(--accent-soft);font-weight:600}
+header.topbar nav .drop-row a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;
+  color:var(--ink);text-decoration:none;font-size:13.5px;opacity:1;flex:1;min-width:0}
+header.topbar nav .drop-row a:hover{color:var(--ink);opacity:1}
 .drop .mk{width:26px;height:26px;border-radius:7px;background:var(--accent-soft);color:var(--accent);
   display:grid;place-items:center;font-weight:700;font-size:11px;flex:none}
 .drop .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drop .st{width:15px;height:15px;color:#f5a800;flex:none}
-.drop hr{border:0;border-top:1px solid var(--line);margin:5px 0}
-header.topbar nav .drop a:last-child{font-size:12.5px;color:var(--muted)}
+.drop .st{width:32px;height:32px;border:0;background:transparent;border-radius:8px;cursor:pointer;
+  padding:0;display:grid;place-items:center;color:#b9adb2;flex:none;margin-right:4px;
+  transition:color .13s,background .13s}
+.drop .st svg{width:17px;height:17px;display:block}
+.drop .st:hover{color:#f5a800;background:#fff8e6}
+.drop .st.on{color:#f5a800}
+.drop .st:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 /* O ícone traz o seu próprio círculo: um contorno em CSS por cima dava
    dois círculos concêntricos. */
@@ -257,21 +265,48 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
           </svg>
         </a>
         <div class="drop" role="menu">
-          <?php foreach ($minhasApps as $ma): ?>
-            <a role="menuitem" href="<?= e($base) ?>app.php?id=<?= (int)$ma['id'] ?>"
-               <?= $abertaId === (int)$ma['id'] ? 'aria-current="true"' : '' ?>>
-              <span class="mk"><?= e(mb_strtoupper(mb_substr($ma['name'], 0, 1))) ?></span>
-              <span class="nm"><?= e($ma['name']) ?></span>
-              <?php if ($appBarra && (int)$appBarra['id'] === (int)$ma['id']): ?>
-                <svg class="st" viewBox="0 0 20 20" fill="currentColor" aria-label="Predefinida">
-                  <path d="M10 1.8l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.42l-4.94 2.6.94-5.5-4-3.9
-                           5.53-.8z"/>
-                </svg>
-              <?php endif; ?>
-            </a>
+          <?php
+            // Para onde voltar depois de carregar na estrela: a própria página.
+            $voltar = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+            if ($dir === 'admin') {
+                $voltar = 'admin/' . $voltar;
+            }
+            $qs = (string)($_SERVER['QUERY_STRING'] ?? '');
+            if ($qs !== '') {
+                $voltar .= '?' . $qs;
+            }
+            if ($base !== '') {
+                // A partir de admin/, o caminho de regresso é relativo à raiz.
+                $voltar = preg_replace('#^admin/#', '', $voltar);
+                $voltar = 'admin/' . $voltar;
+            }
+          ?>
+          <?php foreach ($minhasApps as $ma):
+              $ePredef = $appBarra && (int)$appBarra['id'] === (int)$ma['id']; ?>
+            <div class="drop-row<?= $abertaId === (int)$ma['id'] ? ' aberta' : '' ?>">
+              <a role="menuitem" href="<?= e($base) ?>app.php?id=<?= (int)$ma['id'] ?>">
+                <span class="mk"><?= e(mb_strtoupper(mb_substr($ma['name'], 0, 1))) ?></span>
+                <span class="nm"><?= e($ma['name']) ?></span>
+              </a>
+              <form method="post" action="<?= e($base) ?>predefinir.php">
+                <?= csrf_field() ?>
+                <input type="hidden" name="app_id" value="<?= (int)$ma['id'] ?>">
+                <input type="hidden" name="voltar" value="<?= e($voltar) ?>">
+                <button class="st<?= $ePredef ? ' on' : '' ?>" type="submit"
+                        title="<?= $ePredef ? 'Deixar de abrir esta ao entrar' : 'Abrir esta ao entrar' ?>"
+                        aria-label="<?= $ePredef ? 'Deixar de abrir automaticamente' : 'Definir como predefinida' ?>">
+                  <?php if ($ePredef): ?>
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.6l2.55 5.17 5.7.83-4.12
+                         4.02.97 5.68L10 14.62l-5.1 2.68.97-5.68L1.75 7.6l5.7-.83z"/></svg>
+                  <?php else: ?>
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                         stroke-linejoin="round"><path d="M10 1.6l2.55 5.17 5.7.83-4.12 4.02.97
+                         5.68L10 14.62l-5.1 2.68.97-5.68L1.75 7.6l5.7-.83z"/></svg>
+                  <?php endif; ?>
+                </button>
+              </form>
+            </div>
           <?php endforeach; ?>
-          <hr>
-          <a role="menuitem" href="<?= e($base) ?>index.php?todas=1">Ver todas e escolher a predefinida</a>
         </div>
       </span>
     <?php endif;

@@ -89,19 +89,17 @@ Quando um administrador atribui uma aplicação a alguém que ainda não tinha n
 
 Quem já tinha escolhido a sua mantém-na: uma atribuição nova não lhe muda o hábito.
 
-Para mudar, abra **Aplicações → Ver todas e escolher a predefinida** e carregue na **estrela** da aplicação que quer. A estrela fica amarela e a aplicação passa a abrir sozinha. Carregar outra vez na estrela desliga a abertura automática, e passa a entrar na lista.
+Para mudar, abra o menu **Aplicações** na barra de topo e carregue na **estrela** ao lado da aplicação que quer. A estrela fica amarela e a aplicação passa a abrir sozinha. Carregar outra vez na mesma estrela desliga a abertura automática, e passa a entrar na lista.
 
 ### Mudar de aplicação
 
 O botão **Aplicações**, na barra de topo, só aparece a quem tem mais do que uma — com uma só não haveria nada para escolher.
 
-Carregue nele e abre um menu com todas as suas aplicações. Escolha uma e ela abre. A que está marcada como predefinida tem uma estrela ao lado.
-
-No fim do menu, **Ver todas e escolher a predefinida** leva à lista completa.
+Carregue nele e abre um menu com todas as suas aplicações. Carregar no nome abre a aplicação; carregar na **estrela** à direita marca-a como predefinida, sem sair da página onde está.
 
 ### A lista completa
 
-Cada linha tem o nome da aplicação, a versão, e dois botões à direita:
+Chega-se à lista por **A minha conta → As minhas aplicações**. Cada linha tem o nome da aplicação, a versão, e dois botões à direita:
 
 | Botão | O que faz |
 |---|---|
