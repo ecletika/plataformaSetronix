@@ -90,7 +90,9 @@ Depende de quantas aplicações a pessoa tem:
 | Situação | O que acontece |
 |---|---|
 | Uma aplicação só | É automaticamente a predefinida. Não há nada a decidir. |
-| Duas ou mais | Quem atribui escolhe qual abre, na ficha do utilizador. Enquanto não escolher, a pessoa vê a lista ao entrar. |
+| Duas ou mais | Quem atribui escolhe qual abre. Enquanto não escolher, a pessoa vê a lista ao entrar. |
+
+A escolha faz-se **no próprio formulário de criação**, no campo *Aplicação a abrir ao entrar*, logo por baixo da atribuição de aplicações — a lista de opções acompanha o que estiver na coluna *Vê estas aplicações*. Também se pode alterar depois, na ficha do utilizador.
 
 Ao atribuir aplicações, a plataforma avisa quem está a atribuir: diz que a aplicação passou a abrir sozinha, quando é a única, ou que faltam escolher qual abre, quando ficaram duas ou mais.
 

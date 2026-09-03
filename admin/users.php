@@ -13,6 +13,24 @@ $generatedPassword = null;
 $editId = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
 
 /**
+ * Guarda a aplicação escolhida no formulário, se for uma das que a pessoa
+ * ficou a ter. Um valor que não corresponda é ignorado em silêncio: vem de
+ * um formulário submetido antes de a lista de aplicações mudar.
+ */
+function escolher_predefinida(int $userId, string $role, int $appId): void
+{
+    if ($appId <= 0) {
+        return;
+    }
+    foreach (apps_for_user($userId, in_array($role, ['admin', 'gestor'], true)) as $a) {
+        if ((int)$a['id'] === $appId) {
+            app_set_default($userId, $appId, 'admin');
+            return;
+        }
+    }
+}
+
+/**
  * Avisa quem está a atribuir aplicações de que falta escolher qual abre.
  *
  * Com uma aplicação só, a plataforma escolhe sozinha e não há nada a dizer.
@@ -92,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_POST['apps_submitted'])) {
                     user_set_apps($newId, (array)($_POST['apps'] ?? []));
                 }
+                escolher_predefinida($newId, $role, (int)($_POST['default_app'] ?? 0));
                 $dflt = app_sync_default($newId, in_array($role, ['admin', 'gestor'], true));
                 audit('create', 'user', $newId, 'Utilizador criado: ' . $username, null,
                       ['username' => $username, 'email' => $email, 'role' => $role, 'is_active' => $active]);
@@ -116,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_POST['apps_submitted'])) {
                     user_set_apps($id, (array)($_POST['apps'] ?? []));
                 }
+                escolher_predefinida($id, $role, (int)($_POST['default_app'] ?? 0));
                 $dflt = app_sync_default($id, in_array($role, ['admin', 'gestor'], true));
                 audit('update', 'user', $id, 'Utilizador atualizado: ' . $username,
                       audit_scrub($target),
@@ -306,6 +326,12 @@ $form = [
     'apps' => $repost
         ? array_map('intval', (array)($_POST['apps'] ?? []))
         : ($editing ? user_app_ids((int)$editing['id']) : []),
+    'default_app' => $repost
+        ? (int)($_POST['default_app'] ?? 0)
+        : ($editing
+            ? (int)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                         [(int)$editing['id'], 'default_app'])
+            : 0),
 ];
 
 $todasApps = apps_all(false);
@@ -467,6 +493,48 @@ layout_head('Utilizadores', 'app', '../');
                            . 'abra a aplicação em <a href="apps.php">Aplicações</a> e escolha quem a pode ver.',
         ]);
       ?>
+
+      <label style="max-width:420px;margin-top:14px">Aplicação a abrir ao entrar
+        <select name="default_app" id="default_app">
+          <option value="0">Nenhuma — mostrar a lista</option>
+          <?php foreach ($todasApps as $a): ?>
+            <option value="<?= (int)$a['id'] ?>"
+                    <?= $form['default_app'] === (int)$a['id'] ? 'selected' : '' ?>>
+              <?= e($a['name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+      <p class="muted" style="margin:-6px 0 14px">
+        Com uma aplicação só, é essa automaticamente. Com duas ou mais, escolha aqui qual
+        abre — a pessoa pode trocá-la depois, na estrela do menu <i>Aplicações</i>.
+      </p>
+
+      <script>
+      // A lista de escolhas segue o painel "Vê estas aplicações": não faz
+      // sentido oferecer uma aplicação que se acabou de retirar.
+      (function () {
+        var sel = document.getElementById('default_app');
+        var dir = document.querySelector('#tr-apps .tr-panel[data-side="right"]');
+        if (!sel || !dir) { return; }
+        function sincronizar() {
+          var antes = sel.value;
+          var itens = dir.querySelectorAll('.tr-item');
+          sel.innerHTML = '';
+          var nenhuma = new Option('Nenhuma — mostrar a lista', '0');
+          sel.appendChild(nenhuma);
+          itens.forEach(function (it) {
+            sel.appendChild(new Option(it.dataset.nome, it.dataset.id));
+          });
+          sel.value = antes;
+          if (!sel.value) { sel.value = '0'; }
+        }
+        document.querySelector('#tr-apps').addEventListener('change', function (ev) {
+          if (ev.target.matches('.tr-item input')) { setTimeout(sincronizar, 0); }
+        });
+        sincronizar();
+      })();
+      </script>
     <?php endif; ?>
 
     <p class="muted">

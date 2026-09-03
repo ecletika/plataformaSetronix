@@ -408,7 +408,9 @@ function transfer_list(string $field, array $items, array $labels): void
     $render = static function (array $it) use ($field): void {
         $locked = !empty($it['locked']);
         echo '<li>';
-        echo '<label class="tr-item' . ($locked ? ' locked' : '') . '">';
+        echo '<label class="tr-item' . ($locked ? ' locked' : '') . '"'
+           . ' data-id="' . (int)$it['id'] . '"'
+           . ' data-nome="' . e((string)$it['title']) . '">';
         if (!$locked) {
             echo '<input type="checkbox" name="' . e($field) . '[]" value="' . (int)$it['id'] . '"'
                . (!empty($it['granted']) ? ' checked' : '') . '>';
