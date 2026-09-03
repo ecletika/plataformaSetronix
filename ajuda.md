@@ -85,9 +85,16 @@ O nome que aparece ao lado do logótipo é o da aplicação aberta. **Carregar n
 
 ### Como se escolhe a predefinida
 
-Quando um administrador atribui uma aplicação a alguém que ainda não tinha nenhuma escolhida, essa passa a ser a predefinida — a pessoa entra e a aplicação abre, sem ter de configurar nada.
+Depende de quantas aplicações a pessoa tem:
 
-Quem já tinha escolhido a sua mantém-na: uma atribuição nova não lhe muda o hábito.
+| Situação | O que acontece |
+|---|---|
+| Uma aplicação só | É automaticamente a predefinida. Não há nada a decidir. |
+| Duas ou mais | Quem atribui escolhe qual abre, na ficha do utilizador. Enquanto não escolher, a pessoa vê a lista ao entrar. |
+
+Ao atribuir aplicações, a plataforma avisa quem está a atribuir: diz que a aplicação passou a abrir sozinha, quando é a única, ou que faltam escolher qual abre, quando ficaram duas ou mais.
+
+**A escolha do administrador é apenas o ponto de partida.** A pessoa pode trocá-la quando quiser, na estrela do menu **Aplicações**, e uma edição posterior do administrador não lhe desfaz a escolha — só a limpa se a aplicação escolhida lhe deixar de estar disponível. Na ficha, o administrador vê quando a escolha foi feita pelo próprio utilizador, para saber que a está a sobrepor.
 
 Para mudar, abra o menu **Aplicações** na barra de topo e carregue na **estrela** ao lado da aplicação que quer. A estrela fica amarela e a aplicação passa a abrir sozinha. Carregar outra vez na mesma estrela desliga a abertura automática, e passa a entrar na lista.
 

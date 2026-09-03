@@ -40,10 +40,10 @@ if (!$app || !user_can_open_app((int)$user['id'], $app, can('apps.manage'))) {
 }
 
 if ((int)user_pref('default_app', '0') === $id) {
-    user_pref_set((int)$user['id'], 'default_app', '0');
+    app_set_default((int)$user['id'], 0, 'utilizador');
     flash('ok', '"' . $app['name'] . '" deixou de abrir automaticamente.');
 } else {
-    user_pref_set((int)$user['id'], 'default_app', (string)$id);
+    app_set_default((int)$user['id'], $id, 'utilizador');
     flash('ok', '"' . $app['name'] . '" passa a abrir automaticamente ao entrar.');
 }
 

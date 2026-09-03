@@ -12,6 +12,25 @@ $error = '';
 $generatedPassword = null;
 $editId = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
 
+/**
+ * Avisa quem está a atribuir aplicações de que falta escolher qual abre.
+ *
+ * Com uma aplicação só, a plataforma escolhe sozinha e não há nada a dizer.
+ * Com duas ou mais, a decisão é de quem atribui — e sem aviso ficaria por
+ * fazer sem ninguém dar por isso.
+ */
+function aviso_predefinida(array $estado, string $username, int $userId): void
+{
+    if ($estado['precisa_escolher']) {
+        flash('warn', $username . ' passa a ter ' . $estado['apps'] . ' aplicações e nenhuma '
+            . 'escolhida para abrir ao entrar — vai encontrar a lista. Escolha uma na ficha, '
+            . 'em "Aplicação a abrir ao entrar".');
+    } elseif ($estado['escolhida'] && $estado['apps'] === 1) {
+        flash('ok', 'Como é a única aplicação de ' . $username . ', "'
+            . $estado['escolhida']['name'] . '" passa a abrir logo ao entrar.');
+    }
+}
+
 /** Gera uma palavra-passe inicial legível. */
 function suggest_password(): string
 {
@@ -73,10 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_POST['apps_submitted'])) {
                     user_set_apps($newId, (array)($_POST['apps'] ?? []));
                 }
+                $dflt = app_sync_default($newId, in_array($role, ['admin', 'gestor'], true));
                 audit('create', 'user', $newId, 'Utilizador criado: ' . $username, null,
                       ['username' => $username, 'email' => $email, 'role' => $role, 'is_active' => $active]);
                 $generatedPassword = ['username' => $username, 'password' => $pw];
                 flash('ok', 'Utilizador "' . $username . '" criado.');
+                aviso_predefinida($dflt, $username, $newId);
             } else {
                 if (!$target) {
                     throw new RuntimeException('Utilizador não encontrado.');
@@ -95,12 +116,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_POST['apps_submitted'])) {
                     user_set_apps($id, (array)($_POST['apps'] ?? []));
                 }
+                $dflt = app_sync_default($id, in_array($role, ['admin', 'gestor'], true));
                 audit('update', 'user', $id, 'Utilizador atualizado: ' . $username,
                       audit_scrub($target),
                       ['username' => $username, 'email' => $email, 'full_name' => $fullName,
                        'role' => $role, 'is_active' => $active]);
                 flash('ok', 'Utilizador atualizado.');
-                redirect('users.php');
+                aviso_predefinida($dflt, $username, $id);
+                redirect('users.php?ficha=' . $id);
             }
         } elseif ($action === 'reset_password') {
             if (!$target) {
@@ -134,6 +157,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? 'O MFA passa a ser exigido a ' . $target['username'] . ' no próximo início de sessão.'
                 : 'O MFA deixa de ser exigido a ' . $target['username'] . '.');
             redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'predefinida') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $appId = (int)($_POST['default_app'] ?? 0);
+            $disponiveis = apps_for_user($id, in_array($target['role'], ['admin', 'gestor'], true));
+
+            $valida = $appId === 0;
+            $nome   = '';
+            foreach ($disponiveis as $da) {
+                if ((int)$da['id'] === $appId) {
+                    $valida = true;
+                    $nome   = (string)$da['name'];
+                    break;
+                }
+            }
+            if (!$valida) {
+                throw new RuntimeException('Essa aplicação não está disponível para este utilizador.');
+            }
+            app_set_default($id, $appId, 'admin');
+            audit('update', 'user', $id, $appId === 0
+                ? 'Sem aplicação a abrir ao entrar: ' . $target['username']
+                : 'Aplicação a abrir ao entrar de ' . $target['username'] . ': ' . $nome);
+            flash('ok', $appId === 0
+                ? $target['username'] . ' passa a ver a lista ao entrar.'
+                : $target['username'] . ' passa a abrir "' . $nome . '" ao entrar.');
+            redirect('users.php?ficha=' . $id);
         } elseif ($action === 'repor_app') {
             if (!$target) {
                 throw new RuntimeException('Utilizador não encontrado.');
@@ -144,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Aplicação não encontrada.');
             }
             user_unhide_app($id, $appId);
+            app_sync_default($id, in_array($target['role'], ['admin', 'gestor'], true));
             audit('update', 'user', $id,
                   'Reposta a aplicação "' . $app['name'] . '" a ' . $target['username']);
             flash('ok', '"' . $app['name'] . '" voltou à lista de ' . $target['username'] . '.');
@@ -154,6 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $n = count(user_hidden_apps($id));
             q('DELETE FROM user_apps_hidden WHERE user_id = ?', [$id]);
+            app_sync_default($id, in_array($target['role'], ['admin', 'gestor'], true));
             audit('update', 'user', $id,
                   'Repostas ' . $n . ' aplicação(ões) a ' . $target['username']);
             flash('ok', $n . ' aplicação(ões) reposta(s) na lista de ' . $target['username'] . '.');
@@ -303,6 +355,17 @@ $fichaCodigos = $ficha && (int)$ficha['mfa_enabled'] === 1
     : 0;
 // Aplicações que esta pessoa retirou da própria lista, para poderem ser repostas.
 $fichaEscondidas = $ficha ? user_hidden_apps((int)$ficha['id']) : [];
+
+// Aplicações desta pessoa e qual delas abre ao entrar.
+$fichaGere  = $ficha && in_array($ficha['role'], ['admin', 'gestor'], true);
+$fichaApps  = $ficha ? apps_for_user((int)$ficha['id'], $fichaGere) : [];
+$fichaDflt  = 0;
+$fichaQuem  = 'automatica';
+if ($ficha) {
+    $fichaDflt = (int)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                            [(int)$ficha['id'], 'default_app']);
+    $fichaQuem = app_default_origin((int)$ficha['id']);
+}
 // Aplicações que esta pessoa retirou da própria lista, para poderem ser repostas.
 $fichaEscondidas = $ficha ? user_hidden_apps((int)$ficha['id']) : [];
 
@@ -567,33 +630,50 @@ layout_head('Utilizadores', 'app', '../');
     </div>
 
     <div class="dbox">
-      <p class="t">Aplicações retiradas</p>
-      <?php if (!$fichaEscondidas): ?>
-        <p>Não retirou nenhuma aplicação da sua lista.</p>
+      <p class="t">Aplicação a abrir ao entrar</p>
+      <?php if (!$fichaApps): ?>
+        <p>Sem aplicações atribuídas. Ao entrar vê o aviso de que não tem nenhuma.</p>
+        <div class="spacer"></div>
+      <?php elseif (count($fichaApps) === 1): ?>
+        <p style="font-size:13px;color:var(--ink)"><b><?= e($fichaApps[0]['name']) ?></b></p>
+        <p>É a única que tem, por isso abre automaticamente ao entrar.</p>
         <div class="spacer"></div>
       <?php else: ?>
-        <p>
-          Retirou <?= count($fichaEscondidas) ?> da lista dele. Continua a ter acesso —
-          só deixou de as ver. Reponha aqui.
-        </p>
-        <?php foreach ($fichaEscondidas as $ea): ?>
-          <form method="post" style="display:flex;align-items:center;gap:8px">
-            <?php $accao('repor_app', (int)$ficha['id']); ?>
-            <input type="hidden" name="app_id" value="<?= (int)$ea['id'] ?>">
-            <span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;
-                         text-overflow:ellipsis;white-space:nowrap"><?= e($ea['name']) ?></span>
-            <button type="submit" style="width:auto;flex:none">Repor</button>
-          </form>
-        <?php endforeach; ?>
-        <?php if (count($fichaEscondidas) > 1): ?>
-          <div class="spacer"></div>
-          <form method="post">
-            <?php $accao('repor_todas', (int)$ficha['id']); ?>
-            <button class="primary" type="submit">Repor todas</button>
-          </form>
+        <?php if ($fichaDflt <= 0): ?>
+          <p style="color:var(--warn)">
+            <b>Tem <?= count($fichaApps) ?> aplicações e nenhuma escolhida.</b>
+            Ao entrar vai encontrar a lista. Escolha uma.
+          </p>
+        <?php elseif ($fichaQuem === 'utilizador'): ?>
+          <p>
+            <b>Escolhida pelo próprio.</b> Pode alterá-la aqui, mas ele volta a
+            mudá-la quando quiser, na estrela do menu <i>Aplicações</i>.
+          </p>
+        <?php else: ?>
+          <p>
+            A pessoa pode trocá-la quando quiser, na estrela do menu <i>Aplicações</i>.
+          </p>
         <?php endif; ?>
+        <form method="post">
+          <?php $accao('predefinida', (int)$ficha['id']); ?>
+          <label style="margin-bottom:8px">
+            <select name="default_app">
+              <option value="0" <?= $fichaDflt === 0 ? 'selected' : '' ?>>
+                Nenhuma — mostrar a lista
+              </option>
+              <?php foreach ($fichaApps as $fa): ?>
+                <option value="<?= (int)$fa['id'] ?>" <?= $fichaDflt === (int)$fa['id'] ? 'selected' : '' ?>>
+                  <?= e($fa['name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <div class="spacer"></div>
+          <button class="primary" type="submit">Guardar</button>
+        </form>
       <?php endif; ?>
     </div>
+
 
     <div class="dbox">
       <p class="t">Aplicações retiradas</p>

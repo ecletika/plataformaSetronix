@@ -25,13 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$app || !user_can_open_app((int)$user['id'], $app, $gereApps)) {
         flash('warn', 'Essa aplicação não está disponível para si.');
     } elseif ($accao === 'predefinir') {
-        user_pref_set((int)$user['id'], 'default_app', (string)$id);
+        app_set_default((int)$user['id'], $id, 'utilizador');
         flash('ok', '"' . $app['name'] . '" passa a abrir automaticamente ao entrar.');
     } elseif ($accao === 'limpar') {
-        user_pref_set((int)$user['id'], 'default_app', '0');
+        app_set_default((int)$user['id'], 0, 'utilizador');
         flash('ok', 'Deixou de haver uma aplicação a abrir automaticamente.');
     } elseif ($accao === 'remover') {
         user_hide_app((int)$user['id'], $id);
+        // Se ficou com uma só, essa passa a abrir ao entrar.
+        app_sync_default((int)$user['id'], $gereApps);
         audit('update', 'app', $id, 'Utilizador retirou "' . $app['name'] . '" da sua lista');
         flash('ok', '"' . $app['name'] . '" foi retirada da sua lista. '
                   . 'Um administrador pode repô-la.');

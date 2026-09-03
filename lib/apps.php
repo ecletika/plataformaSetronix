@@ -99,17 +99,69 @@ function user_app_ids(int $userId): array
 }
 
 /**
- * Quem acaba de receber uma aplicação e ainda não tinha nenhuma escolhida
- * fica com esta como predefinida — passa a abrir-lhe logo ao entrar.
- * Quem já tinha escolhido a sua mantém-na.
+ * Guarda a aplicação predefinida e quem a escolheu.
+ *
+ * Saber a origem importa: a escolha do próprio utilizador manda sobre a
+ * sugestão de quem lhe atribuiu as aplicações, e o administrador deve ver
+ * que a está a sobrepor antes de o fazer.
+ *
+ * @param string $porQuem 'utilizador', 'admin' ou 'automatica'
  */
-function app_make_default_if_none(int $userId, int $appId): void
+function app_set_default(int $userId, int $appId, string $porQuem): void
 {
-    $atual = (int)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
-                        [$userId, 'default_app']);
-    if ($atual <= 0) {
-        user_pref_set($userId, 'default_app', (string)$appId);
+    user_pref_set($userId, 'default_app', (string)$appId);
+    user_pref_set($userId, 'default_app_by', $porQuem);
+}
+
+/** Quem escolheu a predefinida deste utilizador. */
+function app_default_origin(int $userId): string
+{
+    $v = (string)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                       [$userId, 'default_app_by']);
+    return $v !== '' ? $v : 'automatica';
+}
+
+/**
+ * Acerta a aplicação predefinida de um utilizador depois de lhe mudarem os
+ * acessos.
+ *
+ * Com uma aplicação só não há nada a decidir: fica essa, e a pessoa entra
+ * diretamente nela. Com duas ou mais, a escolha é de quem atribui — a
+ * plataforma não inventa uma, avisa quem está a atribuir.
+ *
+ * Também limpa uma predefinida que tenha deixado de estar disponível.
+ *
+ * @return array{apps:int, escolhida:?array, precisa_escolher:bool}
+ */
+function app_sync_default(int $userId, bool $seesAll = false): array
+{
+    $apps = apps_for_user($userId, $seesAll);
+    $n    = count($apps);
+
+    $atualId = (int)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                          [$userId, 'default_app']);
+    $valida = null;
+    foreach ($apps as $a) {
+        if ((int)$a['id'] === $atualId) {
+            $valida = $a;
+            break;
+        }
     }
+
+    // A escolhida deixou de estar disponível: não vale a pena mantê-la.
+    if ($atualId > 0 && !$valida) {
+        app_set_default($userId, 0, 'automatica');
+        $atualId = 0;
+    }
+
+    if ($valida) {
+        return ['apps' => $n, 'escolhida' => $valida, 'precisa_escolher' => false];
+    }
+    if ($n === 1) {
+        app_set_default($userId, (int)$apps[0]['id'], 'automatica');
+        return ['apps' => 1, 'escolhida' => $apps[0], 'precisa_escolher' => false];
+    }
+    return ['apps' => $n, 'escolhida' => null, 'precisa_escolher' => $n > 1];
 }
 
 /** Define a lista de utilizadores com acesso a uma aplicação. */
@@ -121,7 +173,6 @@ function app_set_users(int $appId, array $userIds): void
             q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
               [$uid, $appId, current_user()['id'] ?? null]);
             user_unhide_app($uid, $appId);
-            app_make_default_if_none($uid, $appId);
         }
     }
 }
@@ -135,7 +186,6 @@ function user_set_apps(int $userId, array $appIds): void
             q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
               [$userId, $aid, current_user()['id'] ?? null]);
             user_unhide_app($userId, $aid);
-            app_make_default_if_none($userId, $aid);
         }
     }
 }
@@ -162,7 +212,7 @@ function user_hide_app(int $userId, int $appId): void
     q('INSERT IGNORE INTO user_apps_hidden (user_id, app_id) VALUES (?,?)', [$userId, $appId]);
     // Se era a predefinida, deixa de o ser — senão continuava a abrir sozinha.
     if ((int)user_pref('default_app', '0') === $appId) {
-        user_pref_set($userId, 'default_app', '0');
+        app_set_default($userId, 0, 'utilizador');
     }
 }
 

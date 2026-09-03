@@ -69,6 +69,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'access') {
             app_set_users($id, (array)($_POST['users'] ?? []));
             $n = count(app_user_ids($id));
+
+            // Quem ficou com mais do que uma aplicação e sem nenhuma escolhida
+            // precisa que alguém decida qual abre ao entrar.
+            $porEscolher = [];
+            foreach (q_all('SELECT id, username, role FROM users WHERE is_active = 1') as $uu) {
+                $est = app_sync_default((int)$uu['id'],
+                                        in_array($uu['role'], ['admin', 'gestor'], true));
+                if ($est['precisa_escolher']) {
+                    $porEscolher[] = $uu['username'];
+                }
+            }
+            if ($porEscolher) {
+                flash('warn', 'Falta escolher a aplicação que abre ao entrar para: '
+                    . implode(', ', $porEscolher)
+                    . '. Faça-o em Utilizadores, na ficha de cada um.');
+            }
             audit('update', 'app', $id, 'Acesso a ' . $app['name'] . ': '
                   . ($n === 0 ? 'todos os utilizadores' : $n . ' utilizador(es)'));
             flash('ok', $n === 0
