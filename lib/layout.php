@@ -180,6 +180,9 @@ tr.rowlink a.rowname:hover{color:var(--accent);text-decoration:underline}
 .gaveta > summary::-webkit-details-marker{display:none}
 .gaveta > summary:hover{background:var(--surface)}
 .gaveta[open] > summary{background:var(--surface);border-color:var(--ink-3)}
+.gaveta > summary.perigo{border-color:var(--danger-line);color:var(--danger)}
+.gaveta > summary.perigo:hover{background:var(--danger-soft)}
+.gaveta[open] > summary.perigo{background:var(--danger-soft);border-color:var(--danger)}
 .gaveta-corpo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;
   padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .gaveta-corpo select{margin:0;max-width:280px;background:#fff}

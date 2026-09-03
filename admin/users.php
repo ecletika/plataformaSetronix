@@ -280,6 +280,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? 'Conta de ' . $target['username'] . ' reativada.'
                 : 'Conta de ' . $target['username'] . ' desativada e sessões terminadas.');
             redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'apagar') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            if ((int)$target['id'] === (int)$me['id']) {
+                throw new RuntimeException('Não pode apagar a sua própria conta.');
+            }
+            if ($target['role'] === 'admin') {
+                $admins = (int)q_val("SELECT COUNT(*) FROM users
+                                       WHERE role = 'admin' AND is_active = 1 AND id <> ?", [$id]);
+                if ($admins === 0) {
+                    throw new RuntimeException('Tem de existir pelo menos um administrador ativo. '
+                        . 'Crie outro antes de apagar este.');
+                }
+            }
+            if (strtolower(trim((string)($_POST['confirm'] ?? ''))) !== strtolower($target['username'])) {
+                throw new RuntimeException('Para apagar, escreva o nome de utilizador exato na '
+                    . 'caixa de confirmação.');
+            }
+            // O registo é escrito ANTES de apagar: depois já não há de onde
+            // tirar os dados. O log guarda o nome como texto e não aponta
+            // para a tabela de contas, por isso sobrevive ao apagamento.
+            audit('delete', 'user', $id, 'Conta apagada: ' . $target['username'],
+                  audit_scrub($target), null, (int)$me['id'], $me['username']);
+            q('DELETE FROM users WHERE id = ?', [$id]);
+            flash('warn', 'Conta de ' . $target['username'] . ' apagada. '
+                . 'O que ela fez continua no log de alterações.');
+            redirect('users.php');
         } elseif ($action === 'unlock') {
             q('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?', [$id]);
             audit('unlock', 'user', $id, 'Conta desbloqueada por administrador');
@@ -600,7 +628,8 @@ layout_head('Utilizadores', 'app', '../');
     </table>
   </div>
   <p class="muted" style="margin-top:12px">
-    As contas não são apagadas &mdash; são desativadas, para que o log de alterações continue coerente.
+    Desativar impede o acesso e mantém o histórico ligado à conta; apagar remove-a de vez.
+    Em qualquer dos casos, o log de alterações guarda o que a pessoa fez.
   </p>
 </div>
 
@@ -764,7 +793,27 @@ layout_head('Utilizadores', 'app', '../');
     <?php endif; ?>
 
     <?php if (!$fEu): ?>
-      <form class="empurra" method="post"
+      <details class="gaveta empurra" style="width:auto">
+        <summary class="perigo">Apagar conta</summary>
+        <div class="gaveta-corpo">
+          <p class="nota" style="margin:0 0 4px">
+            Apaga a conta e tudo o que lhe pertence: sessões, dispositivo de MFA, códigos de
+            recuperação, aplicações atribuídas e preferências. <b>Não há como desfazer.</b>
+            O que <?= e($ficha['username']) ?> fez continua no log de alterações.
+          </p>
+          <p class="nota" style="margin:0 0 8px">
+            Se só quer impedir o acesso, <b>desative</b> a conta — mantém o histórico ligado a ela.
+          </p>
+          <form method="post">
+            <?php $accao('apagar', (int)$ficha['id']); ?>
+            <input type="text" name="confirm" autocomplete="off" style="margin:0;max-width:220px"
+                   placeholder="escreva <?= e($ficha['username']) ?>" aria-label="Confirmar o nome de utilizador">
+            <button class="danger" type="submit">Apagar definitivamente</button>
+          </form>
+        </div>
+      </details>
+
+      <form method="post"
             onsubmit="return confirm('<?= (int)$ficha['is_active'] === 1 ? 'Desativar' : 'Reativar' ?> a conta de <?= e($ficha['username']) ?>?')">
         <?php $accao('toggle_active', (int)$ficha['id']); ?>
         <button class="<?= (int)$ficha['is_active'] === 1 ? 'danger' : '' ?>" type="submit">

@@ -360,7 +360,15 @@ Quando alguém carrega no caixote de uma aplicação, ela sai da lista **dessa p
 
 Um administrador repõe-na em **Administração → Utilizadores**: escolhe a linha da pessoa e, na ficha, carrega em **Repor aplicações** — o botão só aparece quando há alguma retirada. Abre a lista, com um botão por aplicação e um **Repor todas** quando há mais do que uma.
 
-### As contas não se apagam
+### Desativar e apagar não são a mesma coisa
+
+**Desativar** impede o acesso, termina as sessões abertas e mantém a conta na lista, com o histórico ligado a ela. É reversível: um administrador reativa quando quiser.
+
+**Apagar** remove a conta e tudo o que lhe pertence — sessões, dispositivo de MFA, códigos de recuperação, aplicações atribuídas e preferências. **Não há como desfazer.** Para evitar enganos, é preciso escrever o nome de utilizador exato na caixa de confirmação, e ninguém pode apagar a própria conta.
+
+Em qualquer dos casos o **log de alterações guarda o que a pessoa fez**: o registo guarda o nome como texto e não depende da conta continuar a existir.
+
+Na dúvida, desative.
 
 Quando um administrador desativa uma conta em **Administração → Utilizadores**, a conta não é apagada da base de dados — é apenas marcada como inativa. O utilizador deixa de conseguir entrar, e todas as sessões são terminadas. Mas o registo continua lá para que o log de alterações permaneça coerente e auditável.
 
