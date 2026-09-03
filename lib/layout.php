@@ -52,6 +52,29 @@ header.topbar nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
 header.topbar nav a{color:var(--brand-ink);opacity:.72;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
 header.topbar nav a:hover{background:rgba(127,127,127,.25);opacity:1}
 header.topbar nav a.active{background:rgba(127,127,127,.3);opacity:1}
+/* Menu suspenso das aplicações, na barra de topo */
+.navdrop{position:relative;display:inline-flex}
+header.topbar nav a.drop-t{display:inline-flex;align-items:center;gap:5px}
+header.topbar nav a.drop-t svg{width:15px;height:15px;transition:transform .15s ease}
+.navdrop[data-open="true"] a.drop-t{background:rgba(127,127,127,.3);opacity:1}
+.navdrop[data-open="true"] a.drop-t svg{transform:rotate(180deg)}
+.drop{position:absolute;top:calc(100% + 7px);left:0;min-width:260px;z-index:40;display:none;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px;
+  box-shadow:0 14px 34px -14px rgba(27,16,22,.5)}
+.navdrop[data-open="true"] .drop{display:block}
+/* Especificidade acima de "header.topbar nav a", que de outra forma pinta
+   estas ligações com a cor da barra — texto branco sobre fundo branco. */
+header.topbar nav .drop a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;
+  color:var(--ink);text-decoration:none;font-size:13.5px;opacity:1}
+header.topbar nav .drop a:hover{background:var(--rail-soft);color:var(--ink);opacity:1}
+header.topbar nav .drop a[aria-current="true"]{background:var(--accent-soft);font-weight:600}
+.drop .mk{width:26px;height:26px;border-radius:7px;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-weight:700;font-size:11px;flex:none}
+.drop .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drop .st{width:15px;height:15px;color:#f5a800;flex:none}
+.drop hr{border:0;border-top:1px solid var(--line);margin:5px 0}
+header.topbar nav .drop a:last-child{font-size:12.5px;color:var(--muted)}
+
 /* O ícone traz o seu próprio círculo: um contorno em CSS por cima dava
    dois círculos concêntricos. */
 header.topbar nav a.info{display:grid;place-items:center;width:32px;height:32px;padding:0;
@@ -217,7 +240,41 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
   <h1><?= e($appBarra ? $appBarra['name'] : app_name()) ?></h1>
   <nav>
     <?php
-    $nav($base . 'index.php', 'Aplicações', $script === 'index.php' && $dir !== 'admin');
+    // "Aplicações" só faz sentido com mais do que uma: com uma só, não há
+    // nada para escolher e o botão seria um beco sem saída.
+    $minhasApps = $u ? apps_for_user((int)$u['id'], can('apps.manage')) : [];
+    if (count($minhasApps) > 1):
+        $naLista = $script === 'index.php' && $dir !== 'admin';
+        $abertaId = ($script === 'app.php') ? (int)($_GET['id'] ?? 0) : 0;
+    ?>
+      <span class="navdrop">
+        <a class="drop-t<?= $naLista ? ' active' : '' ?>" href="<?= e($base) ?>index.php?todas=1"
+           aria-haspopup="true" aria-expanded="false">
+          Aplicações
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5.5 8l4.5 4.5L14.5 8"/>
+          </svg>
+        </a>
+        <div class="drop" role="menu">
+          <?php foreach ($minhasApps as $ma): ?>
+            <a role="menuitem" href="<?= e($base) ?>app.php?id=<?= (int)$ma['id'] ?>"
+               <?= $abertaId === (int)$ma['id'] ? 'aria-current="true"' : '' ?>>
+              <span class="mk"><?= e(mb_strtoupper(mb_substr($ma['name'], 0, 1))) ?></span>
+              <span class="nm"><?= e($ma['name']) ?></span>
+              <?php if ($appBarra && (int)$appBarra['id'] === (int)$ma['id']): ?>
+                <svg class="st" viewBox="0 0 20 20" fill="currentColor" aria-label="Predefinida">
+                  <path d="M10 1.8l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.42l-4.94 2.6.94-5.5-4-3.9
+                           5.53-.8z"/>
+                </svg>
+              <?php endif; ?>
+            </a>
+          <?php endforeach; ?>
+          <hr>
+          <a role="menuitem" href="<?= e($base) ?>index.php?todas=1">Ver todas e escolher a predefinida</a>
+        </div>
+      </span>
+    <?php endif;
     if (can('users.manage') || can('apps.manage')) {
         $nav($base . 'admin/index.php', 'Administração', $dir === 'admin');
     }
@@ -245,10 +302,42 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     }
 }
 
+/**
+ * Abre e fecha o menu das aplicações.
+ *
+ * Sem JavaScript o botão continua a ser uma ligação normal para a lista
+ * completa — não se perde o acesso a nada.
+ */
+function layout_dropdown_script(): void
+{
+    ?>
+    <script>
+    (function () {
+      var d = document.querySelector('.navdrop');
+      if (!d) { return; }
+      var t = d.querySelector('.drop-t');
+      t.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var aberto = d.dataset.open === 'true';
+        d.dataset.open = aberto ? 'false' : 'true';
+        t.setAttribute('aria-expanded', aberto ? 'false' : 'true');
+      });
+      document.addEventListener('click', function (ev) {
+        if (!d.contains(ev.target)) { d.dataset.open = 'false'; t.setAttribute('aria-expanded', 'false'); }
+      });
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') { d.dataset.open = 'false'; t.setAttribute('aria-expanded', 'false'); }
+      });
+    })();
+    </script>
+    <?php
+}
+
 /** Rodapé comum. */
 function layout_foot(): void
 {
     global $CONFIG;
+    layout_dropdown_script();
     echo '<footer class="foot">' . e($CONFIG['app']['org'] ?? 'Setronix')
        . ' · ' . e(app_name()) . ' · ' . date('Y') . '</footer></body></html>';
 }

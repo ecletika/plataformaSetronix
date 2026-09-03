@@ -141,6 +141,20 @@ CREATE TABLE IF NOT EXISTS user_apps (
   CONSTRAINT fk_user_apps_app  FOREIGN KEY (app_id)  REFERENCES apps(id)  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Aplicacoes que o utilizador retirou da sua propria lista.
+--
+-- Nao lhe retira o acesso: e so uma arrumacao do lado dele. Um
+-- administrador pode repor a aplicacao na ficha do utilizador.
+CREATE TABLE IF NOT EXISTS user_apps_hidden (
+  user_id    INT UNSIGNED NOT NULL,
+  app_id     INT UNSIGNED NOT NULL,
+  hidden_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, app_id),
+  KEY idx_hidden_app (app_id),
+  CONSTRAINT fk_hidden_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_hidden_app  FOREIGN KEY (app_id)  REFERENCES apps(id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Preferencias pessoais (cor da barra de topo, por agora). Cada
 -- utilizador escolhe as suas e nao afetam mais ninguem.
 CREATE TABLE IF NOT EXISTS user_prefs (

@@ -77,35 +77,46 @@ Um IP é bloqueado temporariamente se:
 - Fizer 25 tentativas de autenticação falhadas nos últimos 15 minutos.
 - O bloqueio é automático e dura 15 minutos.
 
-## Aplicação a abrir ao entrar
+## A aplicação principal
 
-No separador **Aplicações**, o menu **Aplicação predefinida** lista as aplicações a que tem acesso. A que escolher passa a abrir sozinha assim que iniciar sessão, e é o nome dela que aparece ao lado do logótipo na barra de topo.
+Ao iniciar sessão, a plataforma abre diretamente a **aplicação predefinida** de cada pessoa. É esse o ecrã principal: a aplicação ocupa o ecrã todo, com a barra de topo por cima. Não há botão para voltar — os menus da barra continuam sempre disponíveis e é por eles que se muda de aplicação ou se vai à administração.
 
-Escolha **Nenhuma — mostrar esta lista** para voltar a entrar na lista de aplicações. Para chegar às outras aplicações a qualquer momento, carregue em **Aplicações** na barra de topo.
+O nome que aparece ao lado do logótipo é o da aplicação aberta.
 
-A escolha é pessoal: não altera o que os outros veem. Se a aplicação escolhida deixar de lhe estar atribuída, ou for ocultada, a plataforma volta a mostrar a lista.
+### Como se escolhe a predefinida
+
+Quando um administrador atribui uma aplicação a alguém que ainda não tinha nenhuma escolhida, essa passa a ser a predefinida — a pessoa entra e a aplicação abre, sem ter de configurar nada.
+
+Quem já tinha escolhido a sua mantém-na: uma atribuição nova não lhe muda o hábito.
+
+Para mudar, abra **Aplicações → Ver todas e escolher a predefinida** e carregue na **estrela** da aplicação que quer. A estrela fica amarela e a aplicação passa a abrir sozinha. Carregar outra vez na estrela desliga a abertura automática, e passa a entrar na lista.
+
+### Mudar de aplicação
+
+O botão **Aplicações**, na barra de topo, só aparece a quem tem mais do que uma — com uma só não haveria nada para escolher.
+
+Carregue nele e abre um menu com todas as suas aplicações. Escolha uma e ela abre. A que está marcada como predefinida tem uma estrela ao lado.
+
+No fim do menu, **Ver todas e escolher a predefinida** leva à lista completa.
+
+### A lista completa
+
+Cada linha tem o nome da aplicação, a versão, e dois botões à direita:
+
+| Botão | O que faz |
+|---|---|
+| Estrela | Marca a aplicação como predefinida — passa a abrir ao entrar |
+| Caixote | Retira a aplicação da sua lista |
+
+O caixote **não lhe tira o acesso**: é apenas arrumação, para quem tem aplicações que não usa. A aplicação desaparece da lista e do menu, mas se retirar a que estava marcada como predefinida, deixa de haver abertura automática e passa a entrar na lista.
+
+Se se enganar, ou mudar de ideias, **peça a um administrador para a repor** — ele faz isso na sua ficha, em Administração → Utilizadores.
 
 ## Aparência
 
 Em **A minha conta → Aparência** escolhe a cor da barra de topo — oito cores predefinidas ou qualquer outra. Só muda a barra; o resto da plataforma fica igual, e a escolha não altera o que os outros veem.
 
 A cor do texto da barra é decidida automaticamente: passa a preto sobre cores claras e a branco sobre cores escuras, para a barra nunca ficar ilegível.
-
-## Ecrã inicial — Aplicações
-
-Depois de entrar, o utilizador vê o ecrã **Aplicações** com a lista de aplicações a que tem acesso.
-
-**Aplicações visíveis:**
-- Por omissão, uma aplicação publicada aparece a **todos** os utilizadores autenticados.
-- Um administrador pode reservar uma aplicação a pessoas específicas. A partir do momento em que houver alguém atribuído, só essas pessoas a veem. Se voltar a esvaziar a lista, a aplicação volta a estar aberta a todos.
-- Um utilizador vê também as aplicações que lhe foram atribuídas especificamente, mesmo que essas aplicações estejam reservadas a outras pessoas.
-
-**Abrir uma aplicação:**
-- Ao clicar numa aplicação, abre-se um ecrã com uma barra fina no topo (com o nome da plataforma e links para **A minha conta** e **Sair**) e a aplicação HTML dentro de um iframe.
-- A aplicação tem acesso à sessão do utilizador autenticado.
-
-**Aplicações sem ficheiro:**
-- Se uma aplicação foi criada mas nenhum ficheiro HTML foi ainda enviado, aparece com o estado "sem ficheiro" e não pode ser aberta.
 
 ## Administração
 
@@ -335,6 +346,12 @@ Um utilizador pode ativar o seu próprio MFA em **A minha conta** — basta ler 
 Um administrador **não consegue ativar o MFA de outra pessoa** (porque exige ler o código QR no telemóvel dela, o que é físico). O que um administrador **pode** fazer:
 - **Exigir** MFA a uma conta: obriga a pessoa a passar por MFA no próximo login (em **A minha conta**, se for voluntário, ou no ecrã de entrada, se for obrigatório globalmente).
 - **Repor** MFA de uma conta: remove o dispositivo associado, forçando a pessoa a associar um novo no próximo login.
+
+### Retirar uma aplicação não é perder o acesso
+
+Quando alguém carrega no caixote de uma aplicação, ela sai da lista **dessa pessoa** e mais nada: a aplicação continua publicada, os outros continuam a vê-la, e a pessoa continua a ter acesso.
+
+Um administrador repõe-na em **Administração → Utilizadores**, escolhendo a linha da pessoa e usando a caixa **Aplicações retiradas** na ficha. Aparece lá a lista do que ela retirou, com um botão **Repor** em cada uma e um **Repor todas** quando há mais do que uma.
 
 ### As contas não se apagam
 

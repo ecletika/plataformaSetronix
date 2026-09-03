@@ -98,6 +98,20 @@ function user_app_ids(int $userId): array
     ));
 }
 
+/**
+ * Quem acaba de receber uma aplicação e ainda não tinha nenhuma escolhida
+ * fica com esta como predefinida — passa a abrir-lhe logo ao entrar.
+ * Quem já tinha escolhido a sua mantém-na.
+ */
+function app_make_default_if_none(int $userId, int $appId): void
+{
+    $atual = (int)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                        [$userId, 'default_app']);
+    if ($atual <= 0) {
+        user_pref_set($userId, 'default_app', (string)$appId);
+    }
+}
+
 /** Define a lista de utilizadores com acesso a uma aplicação. */
 function app_set_users(int $appId, array $userIds): void
 {
@@ -106,6 +120,8 @@ function app_set_users(int $appId, array $userIds): void
         if ($uid > 0) {
             q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
               [$uid, $appId, current_user()['id'] ?? null]);
+            user_unhide_app($uid, $appId);
+            app_make_default_if_none($uid, $appId);
         }
     }
 }
@@ -118,8 +134,53 @@ function user_set_apps(int $userId, array $appIds): void
         if ($aid > 0) {
             q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
               [$userId, $aid, current_user()['id'] ?? null]);
+            user_unhide_app($userId, $aid);
+            app_make_default_if_none($userId, $aid);
         }
     }
+}
+
+// ---------------------------------------------------------------------
+// Arrumação do lado do utilizador
+//
+// Retirar uma aplicação da lista não retira o acesso: é só arrumação. Um
+// administrador repõe-na na ficha do utilizador.
+// ---------------------------------------------------------------------
+
+/** Ids das aplicações que este utilizador retirou da sua lista. */
+function user_hidden_app_ids(int $userId): array
+{
+    return array_map('intval', array_column(
+        q_all('SELECT app_id FROM user_apps_hidden WHERE user_id = ?', [$userId]),
+        'app_id'
+    ));
+}
+
+/** Retira uma aplicação da lista de um utilizador. */
+function user_hide_app(int $userId, int $appId): void
+{
+    q('INSERT IGNORE INTO user_apps_hidden (user_id, app_id) VALUES (?,?)', [$userId, $appId]);
+    // Se era a predefinida, deixa de o ser — senão continuava a abrir sozinha.
+    if ((int)user_pref('default_app', '0') === $appId) {
+        user_pref_set($userId, 'default_app', '0');
+    }
+}
+
+/** Repõe uma aplicação na lista de um utilizador. */
+function user_unhide_app(int $userId, int $appId): void
+{
+    q('DELETE FROM user_apps_hidden WHERE user_id = ? AND app_id = ?', [$userId, $appId]);
+}
+
+/** Aplicações que um utilizador retirou e continuam a estar-lhe disponíveis. */
+function user_hidden_apps(int $userId): array
+{
+    return q_all(
+        'SELECT a.* FROM apps a
+           JOIN user_apps_hidden h ON h.app_id = a.id AND h.user_id = ?
+          ORDER BY a.sort_order, a.name',
+        [$userId]
+    );
 }
 
 /**
@@ -128,22 +189,31 @@ function user_set_apps(int $userId, array $appIds): void
  * Quem gere aplicações vê sempre todas — de outra forma um administrador
  * podia deixar-se a si próprio de fora e ficar sem acesso ao que publicou.
  */
-function apps_for_user(int $userId, bool $seesAll = false): array
+function apps_for_user(int $userId, bool $seesAll = false, bool $incluirEscondidas = false): array
 {
-    if ($seesAll) {
-        return apps_all(true);
+    $sql = 'SELECT a.* FROM apps a WHERE a.is_active = 1';
+    $arg = [];
+
+    if (!$seesAll) {
+        $sql .= ' AND (NOT EXISTS (SELECT 1 FROM user_apps ua WHERE ua.app_id = a.id)
+                       OR EXISTS (SELECT 1 FROM user_apps ua WHERE ua.app_id = a.id AND ua.user_id = ?))';
+        $arg[] = $userId;
     }
-    return q_all(
-        'SELECT a.* FROM apps a
-          WHERE a.is_active = 1
-            AND (NOT EXISTS (SELECT 1 FROM user_apps ua WHERE ua.app_id = a.id)
-                 OR EXISTS (SELECT 1 FROM user_apps ua WHERE ua.app_id = a.id AND ua.user_id = ?))
-          ORDER BY a.sort_order, a.name',
-        [$userId]
-    );
+    if (!$incluirEscondidas) {
+        $sql .= ' AND NOT EXISTS (SELECT 1 FROM user_apps_hidden h
+                                   WHERE h.app_id = a.id AND h.user_id = ?)';
+        $arg[] = $userId;
+    }
+    return q_all($sql . ' ORDER BY a.sort_order, a.name', $arg);
 }
 
-/** Este utilizador pode abrir esta aplicação? */
+/**
+ * Este utilizador pode abrir esta aplicação?
+ *
+ * Retirar uma aplicação da lista não conta aqui: é arrumação, não uma
+ * retirada de acesso. Quem tiver o endereço continua a poder abri-la — e
+ * o botão "Abrir" da administração continua a funcionar.
+ */
 function user_can_open_app(int $userId, array $app, bool $seesAll = false): bool
 {
     if ((int)$app['is_active'] !== 1) {

@@ -134,6 +134,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? 'O MFA passa a ser exigido a ' . $target['username'] . ' no próximo início de sessão.'
                 : 'O MFA deixa de ser exigido a ' . $target['username'] . '.');
             redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'repor_app') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $appId = (int)($_POST['app_id'] ?? 0);
+            $app   = $appId ? app_find($appId) : null;
+            if (!$app) {
+                throw new RuntimeException('Aplicação não encontrada.');
+            }
+            user_unhide_app($id, $appId);
+            audit('update', 'user', $id,
+                  'Reposta a aplicação "' . $app['name'] . '" a ' . $target['username']);
+            flash('ok', '"' . $app['name'] . '" voltou à lista de ' . $target['username'] . '.');
+            redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'repor_todas') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $n = count(user_hidden_apps($id));
+            q('DELETE FROM user_apps_hidden WHERE user_id = ?', [$id]);
+            audit('update', 'user', $id,
+                  'Repostas ' . $n . ' aplicação(ões) a ' . $target['username']);
+            flash('ok', $n . ' aplicação(ões) reposta(s) na lista de ' . $target['username'] . '.');
+            redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'repor_app') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $appId = (int)($_POST['app_id'] ?? 0);
+            $app   = $appId ? app_find($appId) : null;
+            if (!$app) {
+                throw new RuntimeException('Aplicação não encontrada.');
+            }
+            user_unhide_app($id, $appId);
+            audit('update', 'user', $id,
+                  'Reposta a aplicação "' . $app['name'] . '" a ' . $target['username']);
+            flash('ok', '"' . $app['name'] . '" voltou à lista de ' . $target['username'] . '.');
+            redirect('users.php?ficha=' . $id);
+        } elseif ($action === 'repor_todas') {
+            if (!$target) {
+                throw new RuntimeException('Utilizador não encontrado.');
+            }
+            $n = count(user_hidden_apps($id));
+            q('DELETE FROM user_apps_hidden WHERE user_id = ?', [$id]);
+            audit('update', 'user', $id,
+                  'Repostas ' . $n . ' aplicação(ões) a ' . $target['username']);
+            flash('ok', $n . ' aplicação(ões) reposta(s) na lista de ' . $target['username'] . '.');
+            redirect('users.php?ficha=' . $id);
         } elseif ($action === 'toggle_active') {
             if (!$target) {
                 throw new RuntimeException('Utilizador não encontrado.');
@@ -253,6 +301,10 @@ $fichaSessoes = $ficha
 $fichaCodigos = $ficha && (int)$ficha['mfa_enabled'] === 1
     ? mfa_recovery_codes_left((int)$ficha['id'])
     : 0;
+// Aplicações que esta pessoa retirou da própria lista, para poderem ser repostas.
+$fichaEscondidas = $ficha ? user_hidden_apps((int)$ficha['id']) : [];
+// Aplicações que esta pessoa retirou da própria lista, para poderem ser repostas.
+$fichaEscondidas = $ficha ? user_hidden_apps((int)$ficha['id']) : [];
 
 layout_head('Utilizadores', 'app', '../');
 ?>
@@ -512,6 +564,64 @@ layout_head('Utilizadores', 'app', '../');
         <?php $accao('revoke_sessions', (int)$ficha['id']); ?>
         <button type="submit">Terminar sessões</button>
       </form>
+    </div>
+
+    <div class="dbox">
+      <p class="t">Aplicações retiradas</p>
+      <?php if (!$fichaEscondidas): ?>
+        <p>Não retirou nenhuma aplicação da sua lista.</p>
+        <div class="spacer"></div>
+      <?php else: ?>
+        <p>
+          Retirou <?= count($fichaEscondidas) ?> da lista dele. Continua a ter acesso —
+          só deixou de as ver. Reponha aqui.
+        </p>
+        <?php foreach ($fichaEscondidas as $ea): ?>
+          <form method="post" style="display:flex;align-items:center;gap:8px">
+            <?php $accao('repor_app', (int)$ficha['id']); ?>
+            <input type="hidden" name="app_id" value="<?= (int)$ea['id'] ?>">
+            <span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;
+                         text-overflow:ellipsis;white-space:nowrap"><?= e($ea['name']) ?></span>
+            <button type="submit" style="width:auto;flex:none">Repor</button>
+          </form>
+        <?php endforeach; ?>
+        <?php if (count($fichaEscondidas) > 1): ?>
+          <div class="spacer"></div>
+          <form method="post">
+            <?php $accao('repor_todas', (int)$ficha['id']); ?>
+            <button class="primary" type="submit">Repor todas</button>
+          </form>
+        <?php endif; ?>
+      <?php endif; ?>
+    </div>
+
+    <div class="dbox">
+      <p class="t">Aplicações retiradas</p>
+      <?php if (!$fichaEscondidas): ?>
+        <p>Não retirou nenhuma aplicação da sua lista.</p>
+        <div class="spacer"></div>
+      <?php else: ?>
+        <p>
+          Retirou <?= count($fichaEscondidas) ?> da lista dele. Continua a ter acesso —
+          só deixou de as ver. Reponha aqui.
+        </p>
+        <?php foreach ($fichaEscondidas as $ea): ?>
+          <form method="post" style="display:flex;align-items:center;gap:8px">
+            <?php $accao('repor_app', (int)$ficha['id']); ?>
+            <input type="hidden" name="app_id" value="<?= (int)$ea['id'] ?>">
+            <span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;
+                         text-overflow:ellipsis;white-space:nowrap"><?= e($ea['name']) ?></span>
+            <button type="submit" style="width:auto;flex:none">Repor</button>
+          </form>
+        <?php endforeach; ?>
+        <?php if (count($fichaEscondidas) > 1): ?>
+          <div class="spacer"></div>
+          <form method="post">
+            <?php $accao('repor_todas', (int)$ficha['id']); ?>
+            <button class="primary" type="submit">Repor todas</button>
+          </form>
+        <?php endif; ?>
+      <?php endif; ?>
     </div>
 
     <div class="dbox">
