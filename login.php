@@ -32,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if ($error !== '') {
+    no_store();
+}
 layout_head('Entrar', 'auth');
 ?>
 <div class="wrap narrow" style="margin-top:8vh">
@@ -53,7 +56,8 @@ layout_head('Entrar', 'auth');
                value="<?= e($_POST['username'] ?? '') ?>">
       </label>
       <label><span class="req">Palavra-passe</span>
-        <input type="password" name="password" required autocomplete="current-password">
+        <input type="password" name="password" required autocomplete="current-password"
+               value="<?= e(keep_password('password')) ?>">
       </label>
       <button class="primary" type="submit" style="width:100%">Entrar</button>
     </form>

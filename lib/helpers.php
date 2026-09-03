@@ -60,6 +60,33 @@ function csrf_check(): void
     }
 }
 
+/**
+ * Devolve o que foi escrito num campo de palavra-passe, para a submissão
+ * falhada não apagar tudo e obrigar a escrever de novo.
+ *
+ * Só devolve valor depois de um POST: assim uma palavra-passe nunca vai
+ * no HTML de uma página aberta de fresco. Quem chama tem de marcar a
+ * resposta com no_store() — a palavra-passe vai no corpo e não deve ficar
+ * guardada em disco pelo browser nem por nenhum intermediário.
+ */
+function keep_password(string $campo): string
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        return '';
+    }
+    return (string)($_POST[$campo] ?? '');
+}
+
+/** Impede que esta resposta seja guardada em cache ou em disco. */
+function no_store(): void
+{
+    if (PHP_SAPI === 'cli' || headers_sent()) {
+        return;
+    }
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+}
+
 /** Redireciona e termina. */
 function redirect(string $path): void
 {

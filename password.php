@@ -39,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if ($error !== '') {
+    no_store();
+}
 layout_head('Alterar palavra-passe', $forced ? 'auth' : 'app');
 ?>
 <div class="wrap narrow"<?= $forced ? ' style="margin-top:8vh"' : '' ?>>
@@ -56,13 +59,16 @@ layout_head('Alterar palavra-passe', $forced ? 'auth' : 'app');
     <form method="post" autocomplete="off">
       <?= csrf_field() ?>
       <label><span class="req">Palavra-passe atual</span>
-        <input type="password" name="current" required autocomplete="current-password" autofocus>
+        <input type="password" name="current" required autocomplete="current-password" autofocus
+               value="<?= e(keep_password('current')) ?>">
       </label>
       <label><span class="req">Nova palavra-passe</span>
-        <input type="password" name="new" required autocomplete="new-password">
+        <input type="password" name="new" required autocomplete="new-password"
+               value="<?= e(keep_password('new')) ?>">
       </label>
       <label><span class="req">Confirmar nova palavra-passe</span>
-        <input type="password" name="confirm" required autocomplete="new-password">
+        <input type="password" name="confirm" required autocomplete="new-password"
+               value="<?= e(keep_password('confirm')) ?>">
       </label>
       <p class="muted">
         Mínimo <?= password_min_length() ?> caracteres,

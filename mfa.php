@@ -204,7 +204,8 @@ layout_head('Verificação em duas etapas', 'auth');
       <input type="hidden" name="action" value="enroll">
       <label>
         <input class="otp" type="text" name="code" inputmode="numeric" pattern="[0-9]{6}"
-               maxlength="6" required autofocus autocomplete="one-time-code" placeholder="000000">
+               maxlength="6" required autofocus autocomplete="one-time-code" placeholder="000000"
+               value="<?= e(($_POST['action'] ?? '') === 'enroll' ? (string)($_POST['code'] ?? '') : '') ?>">
       </label>
       <button class="primary" type="submit" style="width:100%">Confirmar e ativar</button>
     </form>
@@ -238,7 +239,8 @@ layout_head('Verificação em duas etapas', 'auth');
       <input type="hidden" name="action" value="verify">
       <label>
         <input class="otp" type="text" name="code" maxlength="9" required autofocus
-               autocomplete="one-time-code" placeholder="000000">
+               autocomplete="one-time-code" placeholder="000000"
+               value="<?= e(($_POST['action'] ?? '') === 'verify' ? (string)($_POST['code'] ?? '') : '') ?>">
       </label>
       <button class="primary" type="submit" style="width:100%">Verificar</button>
     </form>

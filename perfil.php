@@ -80,6 +80,9 @@ $sessions = q_all(
     [(int)$user['id']]
 );
 
+if ($error !== '') {
+    no_store();
+}
 layout_head('A minha conta');
 ?>
 <div class="wrap">
@@ -182,7 +185,8 @@ layout_head('A minha conta');
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="new_codes">
         <label style="margin-bottom:8px">Confirme a palavra-passe
-          <input type="password" name="password" required autocomplete="current-password">
+          <input type="password" name="password" required autocomplete="current-password"
+                 value="<?= e(($_POST['action'] ?? '') === 'new_codes' ? keep_password('password') : '') ?>">
         </label>
         <button type="submit">Gerar novos códigos</button>
       </form>
@@ -199,7 +203,8 @@ layout_head('A minha conta');
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="reset_mfa">
         <label style="margin-bottom:8px">Confirme a palavra-passe
-          <input type="password" name="password" required autocomplete="current-password">
+          <input type="password" name="password" required autocomplete="current-password"
+                 value="<?= e(($_POST['action'] ?? '') === 'reset_mfa' ? keep_password('password') : '') ?>">
         </label>
         <button class="danger" type="submit">Remover MFA e reassociar</button>
       </form>
