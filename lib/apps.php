@@ -160,6 +160,38 @@ function user_can_open_app(int $userId, array $app, bool $seesAll = false): bool
                       [(int)$app['id'], $userId]) > 0;
 }
 
+/**
+ * Aplicação predefinida de um utilizador — a que abre logo a seguir ao
+ * início de sessão e a que dá nome à barra de topo.
+ *
+ * Devolve null quando não escolheu nenhuma, quando a que escolheu foi
+ * entretanto removida, ocultada, ou deixou de lhe estar atribuída.
+ */
+function user_default_app(?int $userId = null, ?bool $seesAll = null): ?array
+{
+    static $cache = [];
+
+    $u = current_user();
+    if (!$u) {
+        return null;
+    }
+    $userId  = $userId ?? (int)$u['id'];
+    $seesAll = $seesAll ?? in_array('apps.manage', PERMISSIONS[$u['role']] ?? [], true);
+
+    if (array_key_exists($userId, $cache)) {
+        return $cache[$userId];
+    }
+    $id = (int)user_pref('default_app', '0');
+    if ($id <= 0) {
+        return $cache[$userId] = null;
+    }
+    $app = app_find($id);
+    if (!$app || !user_can_open_app($userId, $app, $seesAll)) {
+        return $cache[$userId] = null;
+    }
+    return $cache[$userId] = $app;
+}
+
 /** Identificador curto e único para a aplicação (usado no URL). */
 function app_make_slug(string $name, ?int $ignoreId = null): string
 {

@@ -208,10 +208,11 @@ layout_head('A minha conta');
 </div>
 
 <div class="card">
-  <h2>Cor da barra de topo</h2>
+  <h2>Aparência</h2>
   <p class="muted">
-    Só sua: cada pessoa escolhe a cor que quiser e não altera o que os outros veem.
-    O texto da barra passa a preto ou a branco conforme o que se lê melhor.
+    <b>Cor da barra de topo.</b> Só isso: o resto da plataforma não muda.
+    A escolha é sua e não altera o que os outros veem. O texto da barra passa a
+    preto ou a branco conforme o que se lê melhor sobre a cor escolhida.
   </p>
   <div class="cores" style="margin-top:14px">
     <?php $atual = topbar_color(); ?>

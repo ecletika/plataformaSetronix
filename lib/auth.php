@@ -371,9 +371,18 @@ function mfa_required_for(array $user): bool
 function finish_login_and_redirect(array $user): void
 {
     auth_complete_login($user);
-    $to = $_SESSION['redirect_after_login'] ?? 'index.php';
+
+    $to = $_SESSION['redirect_after_login'] ?? '';
     unset($_SESSION['redirect_after_login']);
-    redirect($to !== '' ? $to : 'index.php');
+    if ($to !== '') {
+        redirect($to);
+    }
+
+    // Sem destino pedido, abre a aplicação que a pessoa escolheu como
+    // predefinida. Sem escolha, fica na lista.
+    require_once __DIR__ . '/apps.php';
+    $app = user_default_app((int)$user['id'], can('apps.manage'));
+    redirect($app ? 'app.php?id=' . (int)$app['id'] : 'index.php');
 }
 
 /** Valida a robustez de uma palavra-passe. Devolve lista de problemas. */

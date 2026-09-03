@@ -77,6 +77,20 @@ Um IP é bloqueado temporariamente se:
 - Fizer 25 tentativas de autenticação falhadas nos últimos 15 minutos.
 - O bloqueio é automático e dura 15 minutos.
 
+## Aplicação a abrir ao entrar
+
+No separador **Aplicações**, o menu **Aplicação predefinida** lista as aplicações a que tem acesso. A que escolher passa a abrir sozinha assim que iniciar sessão, e é o nome dela que aparece ao lado do logótipo na barra de topo.
+
+Escolha **Nenhuma — mostrar esta lista** para voltar a entrar na lista de aplicações. Para chegar às outras aplicações a qualquer momento, carregue em **Aplicações** na barra de topo.
+
+A escolha é pessoal: não altera o que os outros veem. Se a aplicação escolhida deixar de lhe estar atribuída, ou for ocultada, a plataforma volta a mostrar a lista.
+
+## Aparência
+
+Em **A minha conta → Aparência** escolhe a cor da barra de topo — oito cores predefinidas ou qualquer outra. Só muda a barra; o resto da plataforma fica igual, e a escolha não altera o que os outros veem.
+
+A cor do texto da barra é decidida automaticamente: passa a preto sobre cores claras e a branco sobre cores escuras, para a barra nunca ficar ilegível.
+
 ## Ecrã inicial — Aplicações
 
 Depois de entrar, o utilizador vê o ecrã **Aplicações** com a lista de aplicações a que tem acesso.

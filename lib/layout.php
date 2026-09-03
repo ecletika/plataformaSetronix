@@ -3,6 +3,9 @@
 
 declare(strict_types=1);
 
+// A barra de topo mostra o nome da aplicação predefinida do utilizador.
+require_once __DIR__ . '/apps.php';
+
 /**
  * @param string $title    Título da página.
  * @param string $variant  'app' (com barra de navegação) ou 'auth' (ecrã centrado).
@@ -49,10 +52,12 @@ header.topbar nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
 header.topbar nav a{color:var(--brand-ink);opacity:.72;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
 header.topbar nav a:hover{background:rgba(127,127,127,.25);opacity:1}
 header.topbar nav a.active{background:rgba(127,127,127,.3);opacity:1}
-header.topbar nav a.info{display:grid;place-items:center;width:30px;height:30px;padding:0;
-  border-radius:50%;border:1px solid currentColor;opacity:.72}
-header.topbar nav a.info svg{width:17px;height:17px}
-header.topbar nav a.info:hover,header.topbar nav a.info.active{opacity:1;background:rgba(127,127,127,.25)}
+/* O ícone traz o seu próprio círculo: um contorno em CSS por cima dava
+   dois círculos concêntricos. */
+header.topbar nav a.info{display:grid;place-items:center;width:32px;height:32px;padding:0;
+  border-radius:8px;opacity:.78}
+header.topbar nav a.info svg{width:21px;height:21px;display:block}
+header.topbar nav a.info:hover,header.topbar nav a.info.active{opacity:1;background:rgba(127,127,127,.28)}
 .who{font-size:12px;color:var(--brand-ink);opacity:.62}
 .wrap{max-width:1180px;margin:22px auto;padding:0 18px}
 .wrap.narrow{max-width:520px}
@@ -204,7 +209,12 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
   <span class="brandplate">
     <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Setronix" width="718" height="277">
   </span>
-  <h1><?= e(app_name()) ?></h1>
+  <?php
+    // O nome ao lado do logótipo é o da aplicação que a pessoa escolheu
+    // como predefinida; sem escolha, é o nome da plataforma.
+    $appBarra = user_default_app();
+  ?>
+  <h1><?= e($appBarra ? $appBarra['name'] : app_name()) ?></h1>
   <nav>
     <?php
     $nav($base . 'index.php', 'Aplicações', $script === 'index.php' && $dir !== 'admin');
@@ -216,9 +226,11 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     ?>
     <a class="info<?= $script === 'ajuda.php' ? ' active' : '' ?>" href="<?= e($base) ?>ajuda.php"
        title="Ajuda e informações sobre a plataforma" aria-label="Ajuda">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
-           stroke-linecap="round" aria-hidden="true">
-        <circle cx="10" cy="10" r="7.6"/><path d="M10 9v4.6"/><path d="M10 6.3v.1"/>
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M12 2.6A9.4 9.4 0 1 0 12 21.4 9.4 9.4 0 0 0 12 2.6Zm1.05 6.02a1.05 1.05 0
+                 1 1-2.1 0 1.05 1.05 0 0 1 2.1 0Zm-2.1 2.93a1.05 1.05 0 0 1 2.1 0v5.1a1.05
+                 1.05 0 0 1-2.1 0v-5.1Z"/>
       </svg>
     </a>
   </nav>

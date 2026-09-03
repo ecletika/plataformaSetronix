@@ -110,10 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Não foi possível ler o segredo MFA desta conta. Contacte um administrador.';
         } elseif (totp_verify($secret, $code, $window)) {
             log_attempt($user['username'], true, 'mfa');
-            auth_complete_login($user);
-            $to = $_SESSION['redirect_after_login'] ?? 'index.php';
-            unset($_SESSION['redirect_after_login']);
-            redirect($to !== '' ? $to : 'index.php');
+            finish_login_and_redirect($user);
         } elseif (strlen(mfa_normalize_recovery($code)) === 8 && mfa_consume_recovery_code((int)$user['id'], $code)) {
             log_attempt($user['username'], true, 'recovery');
             audit('mfa_recovery_used', 'user', $user['id'],
