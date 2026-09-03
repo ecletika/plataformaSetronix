@@ -358,7 +358,7 @@ Um administrador **não consegue ativar o MFA de outra pessoa** (porque exige le
 
 Quando alguém carrega no caixote de uma aplicação, ela sai da lista **dessa pessoa** e mais nada: a aplicação continua publicada, os outros continuam a vê-la, e a pessoa continua a ter acesso.
 
-Um administrador repõe-na em **Administração → Utilizadores**, escolhendo a linha da pessoa e usando a caixa **Aplicações retiradas** na ficha. Aparece lá a lista do que ela retirou, com um botão **Repor** em cada uma e um **Repor todas** quando há mais do que uma.
+Um administrador repõe-na em **Administração → Utilizadores**: escolhe a linha da pessoa e, na ficha, carrega em **Repor aplicações** — o botão só aparece quando há alguma retirada. Abre a lista, com um botão por aplicação e um **Repor todas** quando há mais do que uma.
 
 ### As contas não se apagam
 

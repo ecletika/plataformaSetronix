@@ -618,178 +618,160 @@ layout_head('Utilizadores', 'app', '../');
   <div class="ficha-head">
     <h3><?= e($ficha['full_name']) ?></h3>
     <span class="tag <?= e($ficha['role']) ?>"><?= e(ROLES[$ficha['role']] ?? $ficha['role']) ?></span>
-    <?= (int)$ficha['is_active'] === 1 ? '' : '<span class="tag off">Conta desativada</span>' ?>
-    <?= $fLocked ? '<span class="tag off">Bloqueada por tentativas</span>' : '' ?>
+    <span class="ficha-sub mono" style="margin:0"><?= e($ficha['username']) ?> ·
+      <?= e($ficha['email']) ?></span>
   </div>
-  <p class="ficha-sub mono"><?= e($ficha['username']) ?> &middot; <?= e($ficha['email']) ?></p>
 
-  <div class="ficha-grid">
+  <!-- Estado: o que há para ler sobre esta conta -->
+  <div class="chips">
+    <?php if ($fMfa): ?>
+      <span class="chip bom">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+             aria-hidden="true"><rect x="3" y="7" width="10" height="6.5" rx="1.4"></rect>
+          <path d="M5.4 7V4.9a2.6 2.6 0 0 1 5.2 0V7"></path></svg>
+        MFA associado desde <?= e(substr((string)$ficha['mfa_confirmed_at'], 0, 10)) ?>
+      </span>
+      <span class="chip"><?= $fichaCodigos ?> código(s) de recuperação</span>
+    <?php else: ?>
+      <span class="chip mau">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+             aria-hidden="true"><rect x="3" y="7" width="10" height="6.5" rx="1.4"></rect>
+          <path d="M5.4 7V4.9a2.6 2.6 0 0 1 5.2 0"></path></svg>
+        MFA por associar
+      </span>
+    <?php endif; ?>
 
-    <div class="dbox">
-      <p class="t">Verificação em duas etapas</p>
-      <p style="font-size:13px;color:var(--ink)">
-        <?php if ($fMfa): ?>
-          <span class="tag on">Associado</span>
-          <span class="muted">desde <?= e(substr((string)$ficha['mfa_confirmed_at'], 0, 10)) ?></span>
-        <?php else: ?>
-          <span class="tag off">Por associar</span>
-        <?php endif; ?>
-      </p>
-      <?php if ($fMfa): ?>
-        <p><?= $fichaCodigos ?> código(s) de recuperação por usar.</p>
-      <?php else: ?>
-        <p>
-          Ainda não leu o código QR. Só a própria pessoa o pode fazer, em
-          <b>A minha conta</b> &mdash; o administrador não consegue associar o dispositivo por ela.
-        </p>
-      <?php endif; ?>
+    <?php if (mfa_enforced_globally() || $fExige): ?>
+      <span class="chip">MFA exigido</span>
+    <?php endif; ?>
 
-      <?php if (mfa_enforced_globally()): ?>
-        <p><b>Exigido a todas as contas</b> pela política de segurança.</p>
-      <?php else: ?>
-        <div class="swrow">
-          <form method="post"><?php $accao('toggle_mfa_required', (int)$ficha['id']); ?>
-            <button class="sw" type="submit" role="switch" aria-checked="<?= $fExige ? 'true' : 'false' ?>"
-                    aria-label="<?= $fExige ? 'Deixar de exigir' : 'Exigir' ?> MFA a <?= e($ficha['username']) ?>"></button>
-          </form>
-          <span><?= $fExige ? 'exigido a esta conta' : 'opcional para esta conta' ?></span>
-        </div>
-      <?php endif; ?>
+    <span class="chip">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+           aria-hidden="true"><circle cx="8" cy="8" r="5.6"></circle><path d="M8 4.9V8l2.1 1.5"></path></svg>
+      <?= $fichaSessoes ?> sessão(ões) aberta(s)
+    </span>
 
-      <?php if ($fMfa): ?>
-        <div class="spacer"></div>
-        <form method="post" onsubmit="return confirm('Remover o MFA de <?= e($ficha['username']) ?>? Vai ter de associar um novo dispositivo.')">
-          <?php $accao('reset_mfa', (int)$ficha['id']); ?>
-          <button type="submit">Repor MFA (novo dispositivo)</button>
-        </form>
-      <?php endif; ?>
-    </div>
+    <?php if ($fichaDflt > 0): ?>
+      <?php foreach ($fichaApps as $fa): if ((int)$fa['id'] !== $fichaDflt) { continue; } ?>
+        <span class="chip star">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 1.6l1.94 3.93 4.34.63-3.14 3.06.74 4.32L8 11.5l-3.88 2.04.74-4.32L1.72 6.16l4.34-.63z"></path>
+          </svg>
+          Abre: <?= e($fa['name']) ?>
+        </span>
+      <?php endforeach; ?>
+    <?php elseif (count($fichaApps) > 1): ?>
+      <span class="chip mau">Sem aplicação escolhida — vê a lista</span>
+    <?php elseif (!$fichaApps): ?>
+      <span class="chip mau">Sem aplicações atribuídas</span>
+    <?php endif; ?>
 
-    <div class="dbox">
-      <p class="t">Palavra-passe</p>
-      <p>
-        Gera uma nova, mostra-a uma única vez e obriga a alterá-la no próximo
-        início de sessão.
-      </p>
-      <div class="spacer"></div>
-      <form method="post" onsubmit="return confirm('Repor a palavra-passe de <?= e($ficha['username']) ?>?')">
-        <?php $accao('reset_password', (int)$ficha['id']); ?>
-        <button type="submit">Repor palavra-passe</button>
+    <span class="chip">
+      <?= $fichaEscondidas
+          ? count($fichaEscondidas) . ' aplicação(ões) retirada(s)'
+          : 'Nenhuma aplicação retirada' ?>
+    </span>
+
+    <?php if ($fLocked): ?><span class="chip mau">Bloqueada por tentativas</span><?php endif; ?>
+    <?php if ((int)$ficha['is_active'] !== 1): ?><span class="chip mau">Conta desativada</span><?php endif; ?>
+  </div>
+
+  <!-- Ações: o que há para fazer a esta conta -->
+  <div class="fila">
+    <a class="btn" href="users.php?edit=<?= (int)$ficha['id'] ?>#form">Editar dados</a>
+
+    <form method="post" onsubmit="return confirm('Repor a palavra-passe de <?= e($ficha['username']) ?>?')">
+      <?php $accao('reset_password', (int)$ficha['id']); ?>
+      <button type="submit">Repor palavra-passe</button>
+    </form>
+
+    <form method="post" onsubmit="return confirm('Terminar todas as sessões de <?= e($ficha['username']) ?>?')">
+      <?php $accao('revoke_sessions', (int)$ficha['id']); ?>
+      <button type="submit">Terminar sessões</button>
+    </form>
+
+    <?php if (!mfa_enforced_globally()): ?>
+      <form method="post">
+        <?php $accao('toggle_mfa_required', (int)$ficha['id']); ?>
+        <button type="submit"><?= $fExige ? 'Deixar de exigir MFA' : 'Exigir MFA' ?></button>
       </form>
-      <?php if ($fLocked): ?>
-        <form method="post">
-          <?php $accao('unlock', (int)$ficha['id']); ?>
-          <button type="submit">Desbloquear conta</button>
-        </form>
-      <?php endif; ?>
-    </div>
+    <?php endif; ?>
 
-    <div class="dbox">
-      <p class="t">Sessões</p>
-      <p>
-        <?= $fichaSessoes ?> sessão(ões) aberta(s) nas últimas 12 horas.
-        Terminar fecha-as em todos os equipamentos.
-      </p>
-      <div class="spacer"></div>
-      <form method="post" onsubmit="return confirm('Terminar todas as sessões de <?= e($ficha['username']) ?>?')">
-        <?php $accao('revoke_sessions', (int)$ficha['id']); ?>
-        <button type="submit">Terminar sessões</button>
+    <?php if ($fMfa): ?>
+      <form method="post" onsubmit="return confirm('Remover o MFA de <?= e($ficha['username']) ?>? Vai ter de associar um novo dispositivo.')">
+        <?php $accao('reset_mfa', (int)$ficha['id']); ?>
+        <button type="submit">Repor MFA</button>
       </form>
-    </div>
+    <?php endif; ?>
 
-    <div class="dbox">
-      <p class="t">Aplicação a abrir ao entrar</p>
-      <?php if (!$fichaApps): ?>
-        <p>Sem aplicações atribuídas. Ao entrar vê o aviso de que não tem nenhuma.</p>
-        <div class="spacer"></div>
-      <?php elseif (count($fichaApps) === 1): ?>
-        <p style="font-size:13px;color:var(--ink)"><b><?= e($fichaApps[0]['name']) ?></b></p>
-        <p>É a única que tem, por isso abre automaticamente ao entrar.</p>
-        <div class="spacer"></div>
-      <?php else: ?>
-        <?php if ($fichaDflt <= 0): ?>
-          <p style="color:var(--warn)">
-            <b>Tem <?= count($fichaApps) ?> aplicações e nenhuma escolhida.</b>
-            Ao entrar vai encontrar a lista. Escolha uma.
-          </p>
-        <?php elseif ($fichaQuem === 'utilizador'): ?>
-          <p>
-            <b>Escolhida pelo próprio.</b> Pode alterá-la aqui, mas ele volta a
-            mudá-la quando quiser, na estrela do menu <i>Aplicações</i>.
-          </p>
-        <?php else: ?>
-          <p>
-            A pessoa pode trocá-la quando quiser, na estrela do menu <i>Aplicações</i>.
-          </p>
-        <?php endif; ?>
-        <form method="post">
-          <?php $accao('predefinida', (int)$ficha['id']); ?>
-          <label style="margin-bottom:8px">
+    <?php if ($fLocked): ?>
+      <form method="post">
+        <?php $accao('unlock', (int)$ficha['id']); ?>
+        <button type="submit">Desbloquear conta</button>
+      </form>
+    <?php endif; ?>
+
+    <?php if (count($fichaApps) > 1): ?>
+      <details class="gaveta" style="width:auto">
+        <summary>Mudar aplicação</summary>
+        <div class="gaveta-corpo">
+          <form method="post">
+            <?php $accao('predefinida', (int)$ficha['id']); ?>
             <select name="default_app">
-              <option value="0" <?= $fichaDflt === 0 ? 'selected' : '' ?>>
-                Nenhuma — mostrar a lista
-              </option>
+              <option value="0" <?= $fichaDflt === 0 ? 'selected' : '' ?>>Nenhuma — mostrar a lista</option>
               <?php foreach ($fichaApps as $fa): ?>
                 <option value="<?= (int)$fa['id'] ?>" <?= $fichaDflt === (int)$fa['id'] ? 'selected' : '' ?>>
                   <?= e($fa['name']) ?>
                 </option>
               <?php endforeach; ?>
             </select>
-          </label>
-          <div class="spacer"></div>
-          <button class="primary" type="submit">Guardar</button>
-        </form>
-      <?php endif; ?>
-    </div>
-
-
-    <div class="dbox">
-      <p class="t">Aplicações retiradas</p>
-      <?php if (!$fichaEscondidas): ?>
-        <p>Não retirou nenhuma aplicação da sua lista.</p>
-        <div class="spacer"></div>
-      <?php else: ?>
-        <p>
-          Retirou <?= count($fichaEscondidas) ?> da lista dele. Continua a ter acesso —
-          só deixou de as ver. Reponha aqui.
-        </p>
-        <?php foreach ($fichaEscondidas as $ea): ?>
-          <form method="post" style="display:flex;align-items:center;gap:8px">
-            <?php $accao('repor_app', (int)$ficha['id']); ?>
-            <input type="hidden" name="app_id" value="<?= (int)$ea['id'] ?>">
-            <span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;
-                         text-overflow:ellipsis;white-space:nowrap"><?= e($ea['name']) ?></span>
-            <button type="submit" style="width:auto;flex:none">Repor</button>
+            <button class="primary" type="submit">Guardar</button>
           </form>
-        <?php endforeach; ?>
-        <?php if (count($fichaEscondidas) > 1): ?>
-          <div class="spacer"></div>
-          <form method="post">
-            <?php $accao('repor_todas', (int)$ficha['id']); ?>
-            <button class="primary" type="submit">Repor todas</button>
-          </form>
-        <?php endif; ?>
-      <?php endif; ?>
-    </div>
+          <p class="nota">
+            <?php if ($fichaQuem === 'utilizador'): ?>
+              Foi <b>o próprio</b> que escolheu. Pode alterar aqui, mas ele volta a mudá-la
+              quando quiser, na estrela do menu <i>Aplicações</i>.
+            <?php else: ?>
+              A pessoa pode trocá-la quando quiser, na estrela do menu <i>Aplicações</i>.
+            <?php endif; ?>
+          </p>
+        </div>
+      </details>
+    <?php endif; ?>
 
-    <div class="dbox">
-      <p class="t">Conta</p>
-      <p>
-        Perfil, dados pessoais e aplicações a que tem acesso alteram-se no
-        formulário no topo da página.
-      </p>
-      <div class="spacer"></div>
-      <a class="btn primary" href="users.php?edit=<?= (int)$ficha['id'] ?>#form">Editar dados</a>
-      <?php if (!$fEu): ?>
-        <form method="post" onsubmit="return confirm('<?= (int)$ficha['is_active'] === 1 ? 'Desativar' : 'Reativar' ?> a conta de <?= e($ficha['username']) ?>?')">
-          <?php $accao('toggle_active', (int)$ficha['id']); ?>
-          <button class="<?= (int)$ficha['is_active'] === 1 ? 'danger' : '' ?>" type="submit">
-            <?= (int)$ficha['is_active'] === 1 ? 'Desativar conta' : 'Reativar conta' ?>
-          </button>
-        </form>
-      <?php endif; ?>
-    </div>
+    <?php if ($fichaEscondidas): ?>
+      <details class="gaveta" style="width:auto">
+        <summary>Repor aplicações</summary>
+        <div class="gaveta-corpo">
+          <?php foreach ($fichaEscondidas as $ea): ?>
+            <form method="post">
+              <?php $accao('repor_app', (int)$ficha['id']); ?>
+              <input type="hidden" name="app_id" value="<?= (int)$ea['id'] ?>">
+              <button type="submit"><?= e($ea['name']) ?></button>
+            </form>
+          <?php endforeach; ?>
+          <?php if (count($fichaEscondidas) > 1): ?>
+            <form method="post">
+              <?php $accao('repor_todas', (int)$ficha['id']); ?>
+              <button class="primary" type="submit">Repor todas</button>
+            </form>
+          <?php endif; ?>
+          <p class="nota">
+            Retirou-as da lista dele. Continua a ter acesso — só deixou de as ver.
+          </p>
+        </div>
+      </details>
+    <?php endif; ?>
 
+    <?php if (!$fEu): ?>
+      <form class="empurra" method="post"
+            onsubmit="return confirm('<?= (int)$ficha['is_active'] === 1 ? 'Desativar' : 'Reativar' ?> a conta de <?= e($ficha['username']) ?>?')">
+        <?php $accao('toggle_active', (int)$ficha['id']); ?>
+        <button class="<?= (int)$ficha['is_active'] === 1 ? 'danger' : '' ?>" type="submit">
+          <?= (int)$ficha['is_active'] === 1 ? 'Desativar conta' : 'Reativar conta' ?>
+        </button>
+      </form>
+    <?php endif; ?>
   </div>
 </div>
 <?php endif; ?>

@@ -158,6 +158,33 @@ tr.rowlink[aria-current="true"]:hover{background:#fdf0dd}
 tr.rowlink[aria-current="true"] td:first-child{box-shadow:inset 3px 0 0 var(--rail)}
 tr.rowlink a.rowname{color:var(--ink);text-decoration:none;font-weight:600}
 tr.rowlink a.rowname:hover{color:var(--accent);text-decoration:underline}
+/* Ficha: uma fila de estado, uma fila de ações. O que se lê separado do
+   que se faz — sem caixas, que a enchiam de parágrafos e de altura. */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0 0}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;
+  font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap}
+.chip svg{width:13px;height:13px;flex:none}
+.chip.mau{border-color:#fecaca;background:#fee2e2;color:#991b1b}
+.chip.bom{border-color:#86efac;background:#dcfce7;color:#166534}
+.chip.star{border-color:var(--rail-line);background:var(--rail-soft);color:var(--rail-ink)}
+.chip.star svg{color:#f5a800}
+.fila{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  border-top:1px solid var(--line);margin-top:13px;padding-top:13px}
+.fila form{margin:0}
+.fila .btn,.fila button{font-size:13px;padding:7px 12px}
+.fila .empurra{margin-left:auto}
+/* Controlo que só aparece quando é preciso, sem ocupar espaço em repouso */
+.gaveta{width:100%;margin:0}
+.gaveta > summary{list-style:none;cursor:pointer;display:inline-flex;font:inherit;font-size:13px;
+  padding:7px 12px;border-radius:8px;border:1px solid var(--field);background:#fff;color:var(--ink)}
+.gaveta > summary::-webkit-details-marker{display:none}
+.gaveta > summary:hover{background:var(--surface)}
+.gaveta[open] > summary{background:var(--surface);border-color:var(--ink-3)}
+.gaveta-corpo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;
+  padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.gaveta-corpo select{margin:0;max-width:280px;background:#fff}
+.gaveta-corpo form{margin:0;display:flex;gap:8px;align-items:center}
+.gaveta-corpo .nota{font-size:12.5px;color:var(--muted);flex-basis:100%;margin:0}
 .ficha-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:2px}
 .ficha-head h3{margin:0;font-size:17px;text-transform:none;letter-spacing:0;color:var(--ink)}
 .ficha-sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
