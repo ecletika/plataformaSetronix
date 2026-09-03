@@ -218,6 +218,12 @@ tr.rowlink a.rowname:hover{color:var(--accent);text-decoration:underline}
 .otp{font-size:26px;letter-spacing:10px;text-align:center;font-family:ui-monospace,Consolas,monospace}
 /* O logotipo tem texto vermelho escuro: sobre a barra azul-escura precisa
    de uma placa clara para ter contraste suficiente. */
+/* O logótipo e o nome são a ligação para o ecrã principal — é a forma de
+   voltar, sem acrescentar mais um botão à barra. */
+header.topbar a.brand{display:flex;align-items:center;gap:14px;text-decoration:none;
+  color:inherit;border-radius:10px;padding:3px;margin:-3px;transition:background .13s}
+header.topbar a.brand:hover{background:rgba(127,127,127,.22)}
+header.topbar a.brand:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .brandplate{background:#fff;border-radius:8px;padding:5px 9px;display:flex;align-items:center;flex:none}
 .brandplate img{height:27px;width:auto;display:block}
 .authlogo{display:flex;justify-content:center;margin-bottom:6px}
@@ -237,15 +243,17 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     };
     ?>
 <header class="topbar">
-  <span class="brandplate">
-    <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Setronix" width="718" height="277">
-  </span>
   <?php
     // O nome ao lado do logótipo é o da aplicação que a pessoa escolheu
     // como predefinida; sem escolha, é o nome da plataforma.
     $appBarra = user_default_app();
   ?>
-  <h1><?= e($appBarra ? $appBarra['name'] : app_name()) ?></h1>
+  <a class="brand" href="<?= e($base) ?>index.php" title="Voltar ao ecrã principal">
+    <span class="brandplate">
+      <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Setronix" width="718" height="277">
+    </span>
+    <h1><?= e($appBarra ? $appBarra['name'] : app_name()) ?></h1>
+  </a>
   <nav>
     <?php
     // "Aplicações" só faz sentido com mais do que uma: com uma só, não há

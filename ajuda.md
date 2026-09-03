@@ -81,7 +81,7 @@ Um IP é bloqueado temporariamente se:
 
 Ao iniciar sessão, a plataforma abre diretamente a **aplicação predefinida** de cada pessoa. É esse o ecrã principal: a aplicação ocupa o ecrã todo, com a barra de topo por cima. Não há botão para voltar — os menus da barra continuam sempre disponíveis e é por eles que se muda de aplicação ou se vai à administração.
 
-O nome que aparece ao lado do logótipo é o da aplicação aberta.
+O nome que aparece ao lado do logótipo é o da aplicação aberta. **Carregar no logótipo ou nesse nome volta ao ecrã principal**, de qualquer página da plataforma.
 
 ### Como se escolhe a predefinida
 
