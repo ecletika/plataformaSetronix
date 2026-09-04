@@ -154,7 +154,7 @@ function app_name(): string
     if ($nome === '') {
         $nome = trim((string)($CONFIG['app']['name'] ?? ''));
     }
-    return $cache = ($nome !== '' ? $nome : 'Planeamento Setronix');
+    return $cache = ($nome !== '' ? $nome : 'Aplicações Setronix');
 }
 
 /**

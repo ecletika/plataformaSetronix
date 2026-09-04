@@ -31,7 +31,7 @@ return [
     // Aplicação
     // ---------------------------------------------------------------
     'app' => [
-        'name'      => 'Planeamento Setronix',
+        'name'      => 'Aplicações Setronix',
         'org'       => 'Setronix',
         'timezone'  => 'Europe/Lisbon',
         'base_url'  => '',            // vazio = detecção automática

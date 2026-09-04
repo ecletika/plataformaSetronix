@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db,
                 bin2hex(random_bytes(32)),
                 trim((string)($_POST['org'] ?? 'Setronix')) ?: 'Setronix',
-                trim((string)($_POST['appname'] ?? 'Planeamento Setronix')) ?: 'Planeamento Setronix'
+                trim((string)($_POST['appname'] ?? 'Aplicações Setronix')) ?: 'Aplicações Setronix'
             );
             header('Location: index.php?step=2');
             exit;
@@ -375,7 +375,7 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
         <h3>Identificação</h3>
         <div class="grid">
           <label>Organização <input type="text" name="org" value="Setronix"></label>
-          <label>Nome da plataforma <input type="text" name="appname" value="Planeamento Setronix"></label>
+          <label>Nome da plataforma <input type="text" name="appname" value="Aplicações Setronix"></label>
         </div>
         <button type="submit">Testar ligação e gravar</button>
       </form>

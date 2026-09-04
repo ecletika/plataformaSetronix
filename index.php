@@ -110,7 +110,7 @@ layout_head('Aplicações', 'app');
     <?php endif; ?>
   </div>
   <p class="muted" style="margin:0 0 16px">
-    A estrela marca a aplicação que abre sozinha ao entrar e dá o nome à barra de topo.
+    A estrela marca a aplicação que abre sozinha ao entrar.
     O caixote retira a aplicação desta lista — não lhe tira o acesso, e um administrador
     pode repô-la.
   </p>

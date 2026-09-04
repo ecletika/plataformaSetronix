@@ -206,6 +206,11 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT INTO settings (skey, svalue) VALUES
   ('schema_version', '2'),
   ('mfa_enforce_all', '0'),
-  ('app_name', 'Planeamento Setronix'),
+  ('app_name', 'Aplicações Setronix'),
   ('password_min_length', '6')
 ON DUPLICATE KEY UPDATE svalue = svalue;
+
+-- Renome da plataforma. So mexe em quem ainda tem o nome antigo por
+-- omissao: se o administrador ja escolheu outro, fica o dele.
+UPDATE settings SET svalue = 'Aplicações Setronix'
+ WHERE skey = 'app_name' AND svalue = 'Planeamento Setronix';

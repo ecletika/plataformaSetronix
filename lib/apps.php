@@ -282,7 +282,7 @@ function user_can_open_app(int $userId, array $app, bool $seesAll = false): bool
 
 /**
  * Aplicação predefinida de um utilizador — a que abre logo a seguir ao
- * início de sessão e a que dá nome à barra de topo.
+ * início de sessão.
  *
  * Devolve null quando não escolheu nenhuma, quando a que escolheu foi
  * entretanto removida, ocultada, ou deixou de lhe estar atribuída.

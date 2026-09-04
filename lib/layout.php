@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-// A barra de topo mostra o nome da aplicação predefinida do utilizador.
+// A barra de topo mostra sempre o nome da plataforma, nunca o da aplicação.
 require_once __DIR__ . '/apps.php';
 
 /**
@@ -42,7 +42,8 @@ function layout_head(string $title, string $variant = 'app', string $base = ''):
 }
 /* A barra de topo é escolhida por cada utilizador; a cor do texto vem
    calculada do lado do servidor para nunca ficar ilegível. */
-:root{--brand:<?= e($bar) ?>; --brand-ink:<?= e($bark) ?>}
+:root{--brand:<?= e($bar) ?>; --brand-ink:<?= e($bark) ?>;
+  --logo:<?= $bark === '#ffffff' ? 'brightness(0) invert(1)' : 'none' ?>}
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
 a{color:var(--accent)}
@@ -246,16 +247,18 @@ tr.rowlink a.rowname:hover{color:var(--accent);text-decoration:underline}
 .codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-family:ui-monospace,Consolas,monospace}
 .codes span{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
 .otp{font-size:26px;letter-spacing:10px;text-align:center;font-family:ui-monospace,Consolas,monospace}
-/* O logotipo tem texto vermelho escuro: sobre a barra azul-escura precisa
-   de uma placa clara para ter contraste suficiente. */
 /* O logótipo e o nome são a ligação para o ecrã principal — é a forma de
    voltar, sem acrescentar mais um botão à barra. */
+/* O PNG é transparente, por isso assenta em qualquer cor de barra. O que
+   não assenta é o carmim do letreiro sobre uma barra escura: aí o
+   logótipo passa a branco, como manda a versão monocromática da marca.
+   Em barras claras fica com as cores de origem. */
 header.topbar a.brand{display:flex;align-items:center;gap:14px;text-decoration:none;
   color:inherit;border-radius:10px;padding:3px;margin:-3px;transition:background .13s}
 header.topbar a.brand:hover{background:rgba(127,127,127,.22)}
 header.topbar a.brand:focus-visible{outline:2px solid currentColor;outline-offset:2px}
-.brandplate{background:#fff;border-radius:8px;padding:5px 9px;display:flex;align-items:center;flex:none}
-.brandplate img{height:27px;width:auto;display:block}
+.brandmark{display:flex;align-items:center;flex:none}
+.brandmark img{height:28px;width:auto;display:block;filter:var(--logo)}
 .authlogo{display:flex;justify-content:center;margin-bottom:6px}
 .authlogo img{height:58px;width:auto;max-width:100%;display:block}
 .authname{text-align:center;font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}
@@ -274,15 +277,16 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     ?>
 <header class="topbar">
   <?php
-    // O nome ao lado do logótipo é o da aplicação que a pessoa escolheu
-    // como predefinida; sem escolha, é o nome da plataforma.
-    $appBarra = user_default_app();
+    // O nome ao lado do logótipo é sempre o da plataforma: é um ponto de
+    // referência fixo, igual para toda a gente. Qual a aplicação está
+    // aberta lê-se no separador "Aplicações" e no conteúdo, não aqui.
+    $appBarra = user_default_app();   // só para marcar a predefinida na lista
   ?>
   <a class="brand" href="<?= e($base) ?>index.php" title="Voltar ao ecrã principal">
-    <span class="brandplate">
+    <span class="brandmark">
       <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Setronix" width="718" height="277">
     </span>
-    <h1><?= e($appBarra ? $appBarra['name'] : app_name()) ?></h1>
+    <h1><?= e(app_name()) ?></h1>
   </a>
   <nav>
     <?php
