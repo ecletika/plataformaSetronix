@@ -35,7 +35,7 @@ deployment:
     #    acima sobrepõe ficheiros mas nunca apaga os que deixaram de
     #    existir no repositório — sem esta limpeza continuariam acessíveis
     #    no servidor e a dar erro 500, por já não terem tabelas na BD.
-    - /bin/rm -rf $DEPLOYPATH/api $DEPLOYPATH/legacy
+    - /bin/rm -rf $DEPLOYPATH/legacy
     - /bin/rm -f $DEPLOYPATH/admin/lists.php $DEPLOYPATH/admin/import.php $DEPLOYPATH/admin/backup.php
     - /bin/rm -f $DEPLOYPATH/lib/lists.php $DEPLOYPATH/lib/backup.php $DEPLOYPATH/lib/xlsx.php
 

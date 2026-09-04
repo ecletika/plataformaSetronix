@@ -10,9 +10,51 @@
 define('URL_PREFIX', '../');
 require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/apps.php';
+require_once __DIR__ . '/../lib/dados.php';
 require_once __DIR__ . '/../lib/layout.php';
 
 $me = require_login('apps.manage');
+
+/**
+ * Avisa o administrador do que mudou na declaração de campos.
+ *
+ * Não impede o envio nem altera tabelas: uma página HTML vem de fora e
+ * não manda em ALTER TABLE. Os campos novos ficam registados e os seus
+ * valores guardados na coluna "extras", à espera de decisão — nada se
+ * perde e nada acontece às escondidas.
+ */
+function avisar_campos(?array $campos, int $appId, string $nome): void
+{
+    if (!$campos) {
+        return;
+    }
+    $diz = static function (array $lista): string {
+        $t = array_map(static fn($c) => $c['colecao'] . '.' . $c['campo'], $lista);
+        return implode(', ', array_slice($t, 0, 12)) . (count($t) > 12 ? ' (e mais ' . (count($t) - 12) . ')' : '');
+    };
+
+    if ($campos['novos'] && $campos['conhecidos'] === 0) {
+        flash('ok', 'Esta versão declara ' . count($campos['novos']) . ' campo(s) para guardar na '
+            . 'base de dados. Ficaram registados: ' . $diz($campos['novos']) . '.');
+        return;
+    }
+    if ($campos['novos']) {
+        $semColuna = array_filter($campos['novos'], static fn($c) => !$c['tem_coluna']);
+        $msg = 'Atenção: esta versão traz ' . count($campos['novos']) . ' campo(s) que a versão '
+             . 'anterior não tinha — ' . $diz($campos['novos']) . '.';
+        if ($semColuna) {
+            $msg .= ' Destes, ' . count($semColuna) . ' não têm coluna própria: os valores ficam '
+                  . 'guardados na coluna "extras" e continuam a chegar à aplicação, mas não dão '
+                  . 'para pesquisar nem para relatórios enquanto não lhes for dada coluna.';
+        }
+        flash('warn', $msg);
+    }
+    if ($campos['desaparecidos']) {
+        flash('warn', 'Esta versão deixou de declarar ' . count($campos['desaparecidos'])
+            . ' campo(s) — ' . $diz($campos['desaparecidos']) . '. Os dados já gravados ficam '
+            . 'onde estão; não são apagados.');
+    }
+}
 
 $error  = '';
 $openId = (int)($_GET['id'] ?? 0);
@@ -25,13 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if ($action === 'create') {
+            $campos = null;
             $new = app_create(
                 (string)($_POST['name'] ?? ''),
                 (string)($_POST['description'] ?? ''),
-                $_FILES['file'] ?? []
+                $_FILES['file'] ?? [],
+                $campos
             );
             audit('create', 'app', $new['id'], 'Aplicação criada: ' . $new['name']);
             flash('ok', 'Aplicação "' . $new['name'] . '" publicada.');
+            avisar_campos($campos, (int)$new['id'], $new['name']);
             redirect('apps.php?id=' . (int)$new['id']);
         }
 
@@ -40,9 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'upload') {
-            $v = app_store_version($id, $_FILES['file'] ?? [], (string)($_POST['notes'] ?? ''));
+            $campos = null;
+            $v = app_store_version($id, $_FILES['file'] ?? [], (string)($_POST['notes'] ?? ''), $campos);
             audit('update', 'app', $id, 'Nova versão (' . (int)$v['version'] . ') de ' . $app['name']);
             flash('ok', 'Versão ' . (int)$v['version'] . ' publicada. Os utilizadores passam a ver esta.');
+            avisar_campos($campos, $id, (string)$app['name']);
             redirect('apps.php?id=' . $id);
         }
 

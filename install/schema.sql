@@ -207,3 +207,118 @@ INSERT INTO settings (skey, svalue) VALUES
   ('mfa_enforce_all', '0'),
   ('password_min_length', '6')
 ON DUPLICATE KEY UPDATE svalue = svalue;
+
+
+-- =====================================================================
+-- Dados das aplicacoes alojadas
+-- =====================================================================
+-- Ate aqui a plataforma so guardava o ficheiro HTML; os dados viviam no
+-- localStorage do browser de cada pessoa -- perdiam-se ao limpar o
+-- browser e ninguem via o que os outros escreviam. Estas tabelas passam
+-- os dados para o servidor.
+--
+-- Cada linha aponta para a aplicacao (app_id): a mesma instalacao pode
+-- alojar duas copias da aplicacao sem os dados se misturarem.
+--
+-- O uid e o identificador que a aplicacao usa do lado do browser. E ele
+-- que liga um planeamento a uma obra, por isso e guardado tal e qual.
+
+-- Registo dos campos que cada versao da aplicacao declara guardar.
+-- E o que permite avisar quando uma versao nova traz campos novos.
+CREATE TABLE IF NOT EXISTS app_campos (
+  id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  app_id       INT UNSIGNED NOT NULL,
+  colecao      VARCHAR(64)  NOT NULL,
+  campo        VARCHAR(64)  NOT NULL,
+  tipo         VARCHAR(32)  NOT NULL DEFAULT 'texto',
+  tem_coluna   TINYINT(1)   NOT NULL DEFAULT 0,
+  visto_em     INT UNSIGNED NULL,
+  criado_em    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_campo (app_id, colecao, campo),
+  CONSTRAINT fk_campos_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Obras.
+CREATE TABLE IF NOT EXISTS app_obras (
+  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  app_id     INT UNSIGNED NOT NULL,
+  uid        INT UNSIGNED NOT NULL,
+  client     VARCHAR(160) NOT NULL DEFAULT '',
+  project    VARCHAR(160) NOT NULL DEFAULT '',
+  cost       VARCHAR(80)  NOT NULL DEFAULT '',
+  cost_desc  VARCHAR(255) NOT NULL DEFAULT '',
+  manager    VARCHAR(160) NOT NULL DEFAULT '',
+  fps        VARCHAR(160) NOT NULL DEFAULT '',
+  fps_end    DATE         NULL,
+  valor      DECIMAL(14,2) NULL,
+  closed     TINYINT(1)   NOT NULL DEFAULT 0,
+  closed_at  DATE         NULL,
+  extras     LONGTEXT     NULL,
+  criado_em  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  alterado_em DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  alterado_por INT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_obra (app_id, uid),
+  KEY idx_obra_gestor (app_id, manager),
+  CONSTRAINT fk_obras_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Planeamentos semanais. work_uid aponta para app_obras.uid da mesma
+-- aplicacao; nao e chave estrangeira porque a aplicacao envia os dois
+-- conjuntos de uma vez e a ordem de gravacao nao esta garantida.
+CREATE TABLE IF NOT EXISTS app_planeamentos (
+  id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  app_id       INT UNSIGNED NOT NULL,
+  uid          INT UNSIGNED NOT NULL,
+  work_uid     INT UNSIGNED NOT NULL,
+  week         DATE         NULL,
+  supervisor   VARCHAR(160) NOT NULL DEFAULT '',
+  set1_leader  VARCHAR(160) NOT NULL DEFAULT '',
+  set1_helper1 VARCHAR(160) NOT NULL DEFAULT '',
+  set1_helper2 VARCHAR(160) NOT NULL DEFAULT '',
+  set1_helper3 VARCHAR(160) NOT NULL DEFAULT '',
+  set2_leader  VARCHAR(160) NOT NULL DEFAULT '',
+  set2_helper1 VARCHAR(160) NOT NULL DEFAULT '',
+  set2_helper2 VARCHAR(160) NOT NULL DEFAULT '',
+  set2_helper3 VARCHAR(160) NOT NULL DEFAULT '',
+  contractor_name VARCHAR(160) NOT NULL DEFAULT '',
+  con_leader   VARCHAR(160) NOT NULL DEFAULT '',
+  con_helper1  VARCHAR(160) NOT NULL DEFAULT '',
+  con_helper2  VARCHAR(160) NOT NULL DEFAULT '',
+  con_helper3  VARCHAR(160) NOT NULL DEFAULT '',
+  progress     SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  status       VARCHAR(20)  NOT NULL DEFAULT 'planned',
+  extras       LONGTEXT     NULL,
+  criado_em    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  alterado_em  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  alterado_por INT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_plano (app_id, uid),
+  KEY idx_plano_obra (app_id, work_uid),
+  KEY idx_plano_semana (app_id, week),
+  CONSTRAINT fk_planos_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dias em obra de cada planeamento. Uma linha por dia assinalado: a
+-- ausencia de linha quer dizer "nao ha trabalho nesse dia", distincao
+-- que sete colunas de texto nao conseguiam guardar.
+CREATE TABLE IF NOT EXISTS app_planeamento_dias (
+  id        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  plano_id  BIGINT UNSIGNED NOT NULL,
+  dia       ENUM('mon','tue','wed','thu','fri','sat','sun') NOT NULL,
+  descricao TEXT NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_dia (plano_id, dia),
+  CONSTRAINT fk_dias_plano FOREIGN KEY (plano_id) REFERENCES app_planeamentos (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Definicoes da aplicacao (ex.: objetivo minimo semanal de producao).
+CREATE TABLE IF NOT EXISTS app_definicoes (
+  app_id      INT UNSIGNED NOT NULL,
+  chave       VARCHAR(64)  NOT NULL,
+  valor       TEXT         NULL,
+  alterado_em DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (app_id, chave),
+  CONSTRAINT fk_defs_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

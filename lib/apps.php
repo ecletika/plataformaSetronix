@@ -381,9 +381,13 @@ function app_read_upload(array $file): string
 /**
  * Grava uma nova versão de uma aplicação a partir de um upload.
  *
+ * @param array|null $campos Preenchido com o que mudou na declaração de
+ *                           campos: quais são novos e quais deixaram de
+ *                           ser declarados. Fica a null nas aplicações
+ *                           que não declaram nada.
  * @return array A versão criada.
  */
-function app_store_version(int $appId, array $file, ?string $notes = null): array
+function app_store_version(int $appId, array $file, ?string $notes = null, ?array &$campos = null): array
 {
     $html     = app_read_upload($file);
     $original = substr(basename(to_utf8((string)($file['name'] ?? 'app.html'))), 0, 255);
@@ -409,11 +413,20 @@ function app_store_version(int $appId, array $file, ?string $notes = null): arra
 
     q('UPDATE apps SET current_version_id = ? WHERE id = ?', [$versionId, $appId]);
 
+    // A página diz o que guarda. Comparar com o que já se sabia é o que
+    // permite avisar de um campo novo antes de ele passar despercebido.
+    require_once __DIR__ . '/dados.php';
+    $manifesto = dados_manifesto($html);
+    if ($manifesto !== null) {
+        $campos = dados_diferencas($appId, $manifesto);
+        dados_registar_campos($appId, $manifesto, $versionId);
+    }
+
     return q_one('SELECT * FROM app_versions WHERE id = ?', [$versionId]) ?? [];
 }
 
 /** Cria uma aplicação nova a partir do primeiro ficheiro enviado. */
-function app_create(string $name, ?string $description, array $file): array
+function app_create(string $name, ?string $description, array $file, ?array &$campos = null): array
 {
     $name = trim($name);
     if ($name === '') {
@@ -434,7 +447,7 @@ function app_create(string $name, ?string $description, array $file): array
         ]
     );
     $appId = (int)db()->lastInsertId();
-    app_store_version($appId, $file, 'Primeira versão');
+    app_store_version($appId, $file, 'Primeira versão', $campos);
 
     return app_find($appId) ?? [];
 }

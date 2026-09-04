@@ -372,6 +372,46 @@ Quando um administrador desativa uma conta em **Administração → Utilizadores
 
 Para reativar, o administrador pode clicar no botão **Reativar conta** na mesma ficha.
 
+## Aplicações que guardam dados
+
+Uma aplicação diz o que guarda através de um bloco, dentro do próprio ficheiro HTML, com este aspeto:
+
+```html
+<script type="application/json" id="setronix-dados">
+{ "colecoes": {
+    "obras": { "campos": { "uid": "inteiro", "client": "texto", "value": "decimal" } }
+} }
+</script>
+```
+
+É um bloco de dados e não código: a plataforma lê-o sem nunca ter de interpretar JavaScript vindo de fora.
+
+**Quem escreve este bloco?** Quem faz a aplicação. Se pedir uma versão nova ao ChatGPT, peça-lhe que mantenha o bloco e que lhe acrescente qualquer campo novo. É a única forma de a plataforma saber que esse campo existe.
+
+### O que acontece quando envia uma versão nova
+
+Ao receber o ficheiro, a plataforma compara os campos declarados com os que já conhecia dessa aplicação, e diz-lhe o que mudou:
+
+- **Campos novos** — mostra a lista. Fica registado que existem.
+- **Campos que desapareceram** — mostra a lista. Os dados já gravados **não são apagados**.
+- **Nada mudou** — não diz nada.
+
+O envio nunca é bloqueado por causa disto: o aviso é informação, não uma barreira.
+
+### Campos novos e colunas
+
+A plataforma **não altera tabelas sozinha**. Um ficheiro HTML vem de fora, e dar-lhe o poder de mexer na estrutura da base de dados era abrir uma porta que não se fecha.
+
+Um campo novo que ainda não tenha coluna própria continua a funcionar: o valor é guardado à mesma, numa coluna de reserva, e volta a chegar à aplicação como ela o deixou. O que não dá, enquanto não tiver coluna, é **pesquisar por ele ou usá-lo em relatórios feitos na base de dados**. É por isso que o aviso o distingue — para se saber quando vale a pena pedir a coluna.
+
+### E se o servidor falhar a meio?
+
+A aplicação avisa no fundo do ecrã, a vermelho, que as últimas alterações **não** ficaram gravadas, e volta a tentar na gravação seguinte. Nunca dá uma gravação por feita sem o servidor a ter confirmado.
+
+### Abrir o ficheiro fora da plataforma
+
+Continua a funcionar. Fora da plataforma não há servidor, por isso a aplicação volta a guardar no `localStorage` do browser, como fazia antes. Os dados dos dois sítios são independentes: o que escrever com o ficheiro aberto à solto não aparece na plataforma, e vice-versa.
+
 ## Perguntas frequentes
 
 ### Como atribuo uma aplicação a um utilizador?
@@ -413,4 +453,8 @@ Não. Envie um **único ficheiro HTML** com tudo lá dentro. Se a página buscar
 
 ### O que acontece aos dados que a aplicação produz?
 
-A plataforma só aloja o **ficheiro HTML** da aplicação. Não guarda os dados que a aplicação produz. Uma página HTML normalmente usa `localStorage` do browser, o que significa que os dados ficam no computador de cada utilizador, não são partilhados e desaparecem se o browser for limpo. Para dados centrais e partilhados, a aplicação tem de falar com um servidor externo (trabalho adicional, fora do âmbito desta casca).
+Depende de a aplicação **declarar** o que guarda.
+
+Uma página HTML normal usa o `localStorage` do browser: os dados ficam no computador de quem a abriu, não são partilhados com ninguém e desaparecem se o browser for limpo. Aplicações que não declaram nada continuam assim — a plataforma não lhes toca.
+
+Uma aplicação que declare os seus campos passa a **gravar na base de dados do servidor**: os dados são os mesmos para toda a gente, sobrevivem à limpeza do browser e passam de um computador para o outro. Ver [Aplicações que guardam dados](#aplicações-que-guardam-dados).
