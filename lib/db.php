@@ -133,28 +133,13 @@ function setting(string $key, ?string $default = null): ?string
 /**
  * Nome da plataforma, tal como aparece no cabeçalho e nos títulos.
  *
- * Vem da tabela settings, para poder ser alterado na administração sem
- * mexer no config.php do servidor. Sem nada gravado, cai no config.
+ * É fixo, escrito aqui e em mais lado nenhum: não vem da base de dados
+ * nem do config.php, e não se altera na administração. Assim é o mesmo
+ * em todas as instalações e não depende do estado de nenhuma tabela.
  */
 function app_name(): string
 {
-    global $CONFIG;
-    static $cache = null;
-
-    if ($cache !== null) {
-        return $cache;
-    }
-    $nome = '';
-    try {
-        $nome = trim((string)setting('app_name', ''));
-    } catch (Throwable $ex) {
-        // Base de dados indisponível: o nome não vale um erro fatal.
-        $nome = '';
-    }
-    if ($nome === '') {
-        $nome = trim((string)($CONFIG['app']['name'] ?? ''));
-    }
-    return $cache = ($nome !== '' ? $nome : 'Aplicações Setronix');
+    return 'Aplicações Setronix';
 }
 
 /**

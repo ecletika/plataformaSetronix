@@ -17,7 +17,6 @@ O Administrador tem acesso a tudo:
 - Pode repor a palavra-passe de qualquer utilizador, e exigir ou repor o MFA de uma conta. **Não pode ativar o MFA de outra pessoa** — isso exige ler o código QR no telemóvel dela.
 - Pode consultar o log completo de alterações na plataforma.
 - Pode alterar as definições de segurança: exigir MFA a todos e comprimento mínimo da palavra-passe.
-- Pode alterar o nome da plataforma que aparece no cabeçalho e no ecrã de entrada.
 
 ### Gestor de Aplicações
 O Gestor de Aplicações gere o repositório de ficheiros:
@@ -81,7 +80,7 @@ Um IP é bloqueado temporariamente se:
 
 Ao iniciar sessão, a plataforma abre diretamente a **aplicação predefinida** de cada pessoa. É esse o ecrã principal: a aplicação ocupa o ecrã todo, com a barra de topo por cima. Não há botão para voltar — os menus da barra continuam sempre disponíveis e é por eles que se muda de aplicação ou se vai à administração.
 
-Ao lado do logótipo está sempre o nome da plataforma — **Aplicações Setronix** — igual para toda a gente e em todos os ecrãs. **Carregar no logótipo ou nesse nome volta ao ecrã principal**, de qualquer página da plataforma. Qual a aplicação aberta lê-se no separador **Aplicações** e no próprio conteúdo.
+Ao lado do logótipo está sempre **Aplicações Setronix** — o nome da plataforma, igual para toda a gente, em todos os ecrãs e sem forma de o alterar. **Carregar no logótipo volta ao ecrã principal**, de qualquer página da plataforma; o nome ao lado é só texto. Qual a aplicação aberta lê-se no separador **Aplicações** e no próprio conteúdo.
 
 ### Como se escolhe a predefinida
 
@@ -134,7 +133,6 @@ O menu **Administração** está disponível para Administradores e Gestores de 
 Este separador mostra o estado geral da plataforma e permite ajustar duas definições críticas.
 
 **Identificação:**
-- Campo de texto: **Nome da plataforma** — o nome que aparece no cabeçalho, no ecrã de entrada e no título do separador. Máximo 120 caracteres. Botão **Guardar**.
 
 **Segurança:**
 - Caixa de seleção: **Exigir verificação em duas etapas a todos** — quando ativada, todos os utilizadores têm de passar por MFA antes de entrar. Quando desativada, cada utilizador decide se a ativa em **A minha conta**. Desligar isto **não retira o MFA a ninguém** que já o tenha ativado.

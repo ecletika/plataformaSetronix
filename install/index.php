@@ -89,7 +89,7 @@ function db_error_hint(PDOException $ex, array $db): string
 }
 
 /** Escreve o config.php a partir dos dados do formulário. */
-function write_config(array $db, string $appKey, string $org, string $appName): void
+function write_config(array $db, string $appKey, string $org): void
 {
     $tpl = <<<'PHPTPL'
 <?php
@@ -106,7 +106,6 @@ return [
     ],
     'app_key' => '%KEY%',
     'app' => [
-        'name'        => '%APPNAME%',
         'org'         => '%ORG%',
         'timezone'    => 'Europe/Lisbon',
         'base_url'    => '',
@@ -142,7 +141,6 @@ PHPTPL;
         '%USER%'    => $esc($db['user']),
         '%PASS%'    => $esc($db['pass']),
         '%KEY%'     => $esc($appKey),
-        '%APPNAME%' => $esc($appName),
         '%ORG%'     => $esc($org),
     ]);
 
@@ -184,8 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             write_config(
                 $db,
                 bin2hex(random_bytes(32)),
-                trim((string)($_POST['org'] ?? 'Setronix')) ?: 'Setronix',
-                trim((string)($_POST['appname'] ?? 'Aplicações Setronix')) ?: 'Aplicações Setronix'
+                trim((string)($_POST['org'] ?? 'Setronix')) ?: 'Setronix'
             );
             header('Location: index.php?step=2');
             exit;
@@ -375,7 +372,6 @@ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospa
         <h3>Identificação</h3>
         <div class="grid">
           <label>Organização <input type="text" name="org" value="Setronix"></label>
-          <label>Nome da plataforma <input type="text" name="appname" value="Aplicações Setronix"></label>
         </div>
         <button type="submit">Testar ligação e gravar</button>
       </form>

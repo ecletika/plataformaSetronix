@@ -247,18 +247,19 @@ tr.rowlink a.rowname:hover{color:var(--accent);text-decoration:underline}
 .codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-family:ui-monospace,Consolas,monospace}
 .codes span{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
 .otp{font-size:26px;letter-spacing:10px;text-align:center;font-family:ui-monospace,Consolas,monospace}
-/* O logótipo e o nome são a ligação para o ecrã principal — é a forma de
-   voltar, sem acrescentar mais um botão à barra. */
+/* Só o logótipo é a ligação para o ecrã principal — é a forma de voltar,
+   sem acrescentar mais um botão à barra. O nome ao lado é texto: fica
+   fora da zona clicável para não haver dois alvos a fazer o mesmo. */
 /* O PNG é transparente, por isso assenta em qualquer cor de barra. O que
    não assenta é o carmim do letreiro sobre uma barra escura: aí o
    logótipo passa a branco, como manda a versão monocromática da marca.
    Em barras claras fica com as cores de origem. */
-header.topbar a.brand{display:flex;align-items:center;gap:14px;text-decoration:none;
-  color:inherit;border-radius:10px;padding:3px;margin:-3px;transition:background .13s}
+.brandzone{display:flex;align-items:center;gap:14px}
+header.topbar a.brand{display:flex;align-items:center;flex:none;text-decoration:none;
+  border-radius:10px;padding:4px 6px;margin:-4px -6px;transition:background .13s}
 header.topbar a.brand:hover{background:rgba(127,127,127,.22)}
 header.topbar a.brand:focus-visible{outline:2px solid currentColor;outline-offset:2px}
-.brandmark{display:flex;align-items:center;flex:none}
-.brandmark img{height:28px;width:auto;display:block;filter:var(--logo)}
+header.topbar a.brand img{height:28px;width:auto;display:block;filter:var(--logo)}
 .authlogo{display:flex;justify-content:center;margin-bottom:6px}
 .authlogo img{height:58px;width:auto;max-width:100%;display:block}
 .authname{text-align:center;font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}
@@ -282,12 +283,13 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     // aberta lê-se no separador "Aplicações" e no conteúdo, não aqui.
     $appBarra = user_default_app();   // só para marcar a predefinida na lista
   ?>
-  <a class="brand" href="<?= e($base) ?>index.php" title="Voltar ao ecrã principal">
-    <span class="brandmark">
-      <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Setronix" width="718" height="277">
-    </span>
+  <span class="brandzone">
+    <a class="brand" href="<?= e($base) ?>index.php" title="Voltar ao ecrã principal">
+      <img src="<?= e($base) ?>assets/logo-setronix.png" alt="Voltar ao ecrã principal"
+           width="718" height="277">
+    </a>
     <h1><?= e(app_name()) ?></h1>
-  </a>
+  </span>
   <nav>
     <?php
     // "Aplicações" só faz sentido com mais do que uma: com uma só, não há
