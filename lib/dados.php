@@ -10,23 +10,39 @@
  * Este ficheiro põe os dados no servidor. A aplicação declara, num bloco
  * JSON dentro do próprio HTML, que coleções guarda e que campos tem cada
  * uma. A plataforma lê essa declaração quando uma versão é enviada,
- * compara-a com o que já conhecia e avisa se aparecer campo novo.
+ * compara-a com o que já conhecia, avisa do que mudou e escreve o SQL
+ * que falta — a criação da tabela nova ou as colunas novas.
  *
- * O que a declaração NÃO faz é alterar tabelas sozinha. Um ficheiro HTML
- * vem de fora — hoje do ChatGPT, amanhã de quem for — e não pode mandar
- * em ALTER TABLE. Campo novo é registado, mostrado ao administrador, e os
- * seus valores ficam guardados na coluna "extras" até alguém decidir
- * dar-lhe coluna própria. Nada se perde e nada acontece às escondidas.
+ * O SQL é mostrado e só corre quando um administrador carregar no botão.
+ * Um ficheiro HTML vem de fora — hoje do ChatGPT, amanhã de quem for — e
+ * não pode mandar sozinho na estrutura da base de dados. O que ele pode
+ * pedir é limitado a duas coisas: criar uma tabela e acrescentar colunas.
+ * Nunca apagar, nunca alterar o que já existe. E os nomes e os tipos
+ * passam por uma lista fechada antes de chegarem ao SQL.
+ *
+ * Enquanto um campo não tiver coluna, o valor não se perde: fica na
+ * coluna "extras" e volta a chegar à aplicação tal e qual.
  */
 
 /** Onde vive a declaração dentro do HTML da aplicação. */
 const DADOS_MARCA = 'setronix-dados';
 
 /**
- * Campos com coluna própria, por coleção.
+ * Coleções que já vinham com a plataforma, e a tabela de cada uma.
+ *
+ * As que forem criadas a partir de uma declaração ficam registadas em
+ * app_colecoes; estas estão aqui porque existem desde o princípio.
+ */
+const DADOS_TABELAS = [
+    'obras'        => 'app_obras',
+    'planeamentos' => 'app_planeamentos',
+];
+
+/**
+ * Campos com coluna própria de origem, por coleção.
  *
  * A chave é o nome que a aplicação usa em JavaScript; o valor é a coluna.
- * Tudo o que a aplicação enviar e não estiver aqui vai para "extras".
+ * As colunas acrescentadas depois ficam registadas em app_campos.
  */
 const DADOS_COLUNAS = [
     'obras' => [
@@ -66,8 +82,35 @@ const DADOS_COLUNAS = [
     ],
 ];
 
+/** Tipo de cada campo de origem, para converter o que chega do browser. */
+const DADOS_TIPOS = [
+    'obras' => [
+        'uid' => 'inteiro', 'value' => 'decimal', 'closed' => 'booleano',
+        'fpsEnd' => 'data', 'closedAt' => 'data',
+    ],
+    'planeamentos' => [
+        'uid' => 'inteiro', 'workUid' => 'inteiro', 'progress' => 'inteiro', 'week' => 'data',
+    ],
+];
+
 /** Dias da semana aceites, pela ordem em que se lêem. */
 const DADOS_DIAS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+/**
+ * Tipos que uma declaração pode pedir, e a coluna que cada um gera.
+ *
+ * É uma lista fechada de propósito: o que vem no ficheiro HTML escolhe de
+ * entre estas, nunca escreve o tipo à mão.
+ */
+const DADOS_TIPOS_SQL = [
+    'texto'    => "VARCHAR(255) NOT NULL DEFAULT ''",
+    'texto_longo' => 'TEXT NULL',
+    'inteiro'  => 'INT NULL',
+    'decimal'  => 'DECIMAL(14,2) NULL',
+    'data'     => 'DATE NULL',
+    'datahora' => 'DATETIME NULL',
+    'booleano' => 'TINYINT(1) NOT NULL DEFAULT 0',
+];
 
 // ---------------------------------------------------------------------
 // A declaração que vem dentro do HTML
@@ -96,20 +139,19 @@ function dados_manifesto(string $html): ?array
     return $json;
 }
 
-/**
- * Campos declarados, achatados em pares "coleção" => ['campo' => tipo].
- */
+/** Campos declarados, achatados em "coleção" => ['campo' => tipo]. */
 function dados_campos_declarados(array $manifesto): array
 {
     $out = [];
     foreach ($manifesto['colecoes'] as $nome => $def) {
-        if (!is_array($def)) {
+        if (!is_array($def) || !dados_nome_valido((string)$nome)) {
             continue;
         }
         $campos = isset($def['campos']) && is_array($def['campos']) ? $def['campos'] : [];
         $lista  = [];
         foreach ($campos as $campo => $tipo) {
-            $lista[(string)$campo] = is_string($tipo) ? $tipo : 'texto';
+            $tipo = is_string($tipo) ? $tipo : 'texto';
+            $lista[(string)$campo] = isset(DADOS_TIPOS_SQL[$tipo]) ? $tipo : 'texto';
         }
         $out[(string)$nome] = $lista;
     }
@@ -117,30 +159,163 @@ function dados_campos_declarados(array $manifesto): array
 }
 
 /**
- * Compara a declaração de uma versão com o que já estava registado.
+ * Nome aceitável para coleção, campo ou coluna.
  *
- * Não grava nada: serve para mostrar ao administrador o que muda, antes
- * de ele confirmar o envio.
+ * Tudo o que venha do ficheiro passa por aqui antes de chegar perto do
+ * SQL. Letras, dígitos e underscore, a começar por letra: não há aspas,
+ * espaços nem ponto e vírgula que sobrevivam a isto.
+ */
+function dados_nome_valido(string $n): bool
+{
+    return (bool)preg_match('/^[A-Za-z][A-Za-z0-9_]{0,40}$/', $n);
+}
+
+/** Nome da coluna para um campo: "costDesc" fica "cost_desc". */
+function dados_coluna_para(string $campo): string
+{
+    $c = strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $campo));
+    $c = preg_replace('/[^a-z0-9_]/', '_', $c);
+    $c = trim(preg_replace('/_+/', '_', $c), '_');
+    // Não colidir com as colunas que todas as tabelas têm.
+    if (in_array($c, ['id', 'app_id', 'extras', 'criado_em', 'alterado_em', 'alterado_por'], true)) {
+        $c .= '_campo';
+    }
+    return substr($c, 0, 60);
+}
+
+// ---------------------------------------------------------------------
+// O que a plataforma já conhece
+// ---------------------------------------------------------------------
+
+/** Coleções desta aplicação: as de origem mais as que foram criadas. */
+function dados_colecoes(int $appId): array
+{
+    $out = [];
+    foreach (DADOS_TABELAS as $colecao => $tabela) {
+        $out[$colecao] = ['tabela' => $tabela, 'dias' => $colecao === 'planeamentos', 'origem' => true];
+    }
+    foreach (q_all('SELECT colecao, tabela FROM app_colecoes WHERE app_id = ?', [$appId]) as $r) {
+        if (!isset($out[$r['colecao']])) {
+            $out[$r['colecao']] = ['tabela' => $r['tabela'], 'dias' => false, 'origem' => false];
+        }
+    }
+
+    // Uma tabela registada pode ter sido apagada à mão na base de dados.
+    // Ler dela rebentaria a aplicação inteira; ignorá-la deixa-a a
+    // funcionar, e o painel volta a propor a criação.
+    $existem = [];
+    foreach (q_all('SELECT table_name AS t FROM information_schema.tables
+                     WHERE table_schema = DATABASE()') as $r) {
+        $existem[$r['t']] = true;
+    }
+    foreach ($out as $colecao => $def) {
+        if (!isset($existem[$def['tabela']])) {
+            unset($out[$colecao]);
+        }
+    }
+    return $out;
+}
+
+/** Campos com coluna, numa coleção: os de origem mais os acrescentados. */
+function dados_colunas(int $appId, string $colecao): array
+{
+    static $cache = [];
+    $ck = $appId . '|' . $colecao;
+    if (isset($cache[$ck])) {
+        return $cache[$ck];
+    }
+    $out = DADOS_COLUNAS[$colecao] ?? [];
+    foreach (q_all('SELECT campo, coluna FROM app_campos
+                     WHERE app_id = ? AND colecao = ? AND coluna IS NOT NULL', [$appId, $colecao]) as $r) {
+        $out[$r['campo']] = $r['coluna'];
+    }
+    return $cache[$ck] = $out;
+}
+
+/** Tipo de um campo, para converter o valor que chega do browser. */
+function dados_tipo(int $appId, string $colecao, string $campo): string
+{
+    static $cache = [];
+    if (!isset($cache[$appId])) {
+        $cache[$appId] = [];
+        foreach (q_all('SELECT colecao, campo, tipo FROM app_campos WHERE app_id = ?', [$appId]) as $r) {
+            $cache[$appId][$r['colecao']][$r['campo']] = $r['tipo'];
+        }
+    }
+    return $cache[$appId][$colecao][$campo]
+        ?? DADOS_TIPOS[$colecao][$campo]
+        ?? 'texto';
+}
+
+/**
+ * A declaração da versão que está no ar.
  *
- * @return array{novos: array, desaparecidos: array, conhecidos: int}
+ * @return array|null null quando a aplicação não tem ficheiro ou não
+ *                    declara nada.
+ */
+function dados_manifesto_da_app(array $app): ?array
+{
+    require_once __DIR__ . '/apps.php';
+    $v = app_current_version($app);
+    if (!$v) {
+        return null;
+    }
+    $caminho = app_version_path($v['storage_name']);
+    if (!is_file($caminho)) {
+        return null;
+    }
+    return dados_manifesto((string)file_get_contents($caminho));
+}
+
+// ---------------------------------------------------------------------
+// Comparar a declaração com o que existe
+// ---------------------------------------------------------------------
+
+/**
+ * O que muda quando esta versão entrar.
+ *
+ * Não grava nem altera nada: é o que se mostra ao administrador.
+ *
+ * @return array{novos:array, desaparecidos:array, conhecidos:int,
+ *               tabelas_novas:array, sql:array}
  */
 function dados_diferencas(int $appId, array $manifesto): array
 {
     $declarados = dados_campos_declarados($manifesto);
+    $colecoes   = dados_colecoes($appId);
+
     $registados = [];
     foreach (q_all('SELECT colecao, campo FROM app_campos WHERE app_id = ?', [$appId]) as $r) {
         $registados[$r['colecao']][$r['campo']] = true;
     }
 
-    $novos = $desaparecidos = [];
+    $novos = $desaparecidos = $tabelasNovas = $sql = [];
+
     foreach ($declarados as $colecao => $campos) {
+        // "definicoes" é uma tabela de chave/valor: não leva colunas.
+        $temTabela = isset($colecoes[$colecao]) || $colecao === 'definicoes';
+        $colunas   = $temTabela && $colecao !== 'definicoes' ? dados_colunas($appId, $colecao) : [];
+
+        if (!$temTabela) {
+            $tabelasNovas[] = $colecao;
+            $sql[] = dados_sql_criar_tabela($colecao, $campos);
+        }
+
         foreach ($campos as $campo => $tipo) {
+            if (!dados_nome_valido($campo)) {
+                continue;
+            }
+            $temColuna = $temTabela && ($colecao === 'definicoes' || isset($colunas[$campo]));
             if (!isset($registados[$colecao][$campo])) {
                 $novos[] = ['colecao' => $colecao, 'campo' => $campo, 'tipo' => $tipo,
-                            'tem_coluna' => isset(DADOS_COLUNAS[$colecao][$campo])];
+                            'tem_coluna' => $temColuna];
+            }
+            if ($temTabela && $colecao !== 'definicoes' && !isset($colunas[$campo])) {
+                $sql[] = dados_sql_acrescentar_coluna($colecoes[$colecao]['tabela'], $campo, $tipo);
             }
         }
     }
+
     foreach ($registados as $colecao => $campos) {
         foreach ($campos as $campo => $_) {
             if (!isset($declarados[$colecao][$campo])) {
@@ -153,7 +328,9 @@ function dados_diferencas(int $appId, array $manifesto): array
     foreach ($registados as $campos) {
         $conhecidos += count($campos);
     }
-    return ['novos' => $novos, 'desaparecidos' => $desaparecidos, 'conhecidos' => $conhecidos];
+
+    return ['novos' => $novos, 'desaparecidos' => $desaparecidos, 'conhecidos' => $conhecidos,
+            'tabelas_novas' => $tabelasNovas, 'sql' => $sql];
 }
 
 /**
@@ -165,13 +342,17 @@ function dados_diferencas(int $appId, array $manifesto): array
 function dados_registar_campos(int $appId, array $manifesto, ?int $versaoId = null): void
 {
     foreach (dados_campos_declarados($manifesto) as $colecao => $campos) {
+        $colunas = dados_colunas($appId, $colecao);
         foreach ($campos as $campo => $tipo) {
+            if (!dados_nome_valido($campo)) {
+                continue;
+            }
             q(
-                'INSERT INTO app_campos (app_id, colecao, campo, tipo, tem_coluna, visto_em)
+                'INSERT INTO app_campos (app_id, colecao, campo, tipo, coluna, visto_em)
                  VALUES (?,?,?,?,?,?)
-                 ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), visto_em = VALUES(visto_em)',
-                [$appId, $colecao, $campo, mb_substr($tipo, 0, 32),
-                 isset(DADOS_COLUNAS[$colecao][$campo]) ? 1 : 0, $versaoId]
+                 ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), visto_em = VALUES(visto_em),
+                     coluna = COALESCE(VALUES(coluna), coluna)',
+                [$appId, $colecao, $campo, $tipo, $colunas[$campo] ?? null, $versaoId]
             );
         }
     }
@@ -181,7 +362,7 @@ function dados_registar_campos(int $appId, array $manifesto, ?int $versaoId = nu
 function dados_campos_registados(int $appId): array
 {
     $out = [];
-    foreach (q_all('SELECT colecao, campo, tipo, tem_coluna FROM app_campos
+    foreach (q_all('SELECT colecao, campo, tipo, coluna FROM app_campos
                      WHERE app_id = ? ORDER BY colecao, campo', [$appId]) as $r) {
         $out[$r['colecao']][] = $r;
     }
@@ -189,26 +370,149 @@ function dados_campos_registados(int $appId): array
 }
 
 // ---------------------------------------------------------------------
+// O SQL que falta
+// ---------------------------------------------------------------------
+
+/** Nome da tabela de uma coleção criada a partir de uma declaração. */
+function dados_tabela_para(string $colecao): string
+{
+    return 'app_' . substr(strtolower(preg_replace('/[^A-Za-z0-9_]/', '_', $colecao)), 0, 50);
+}
+
+/** CREATE TABLE de uma coleção nova. */
+function dados_sql_criar_tabela(string $colecao, array $campos): array
+{
+    $tabela = dados_tabela_para($colecao);
+    $linhas = [
+        '  id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT',
+        '  app_id       INT UNSIGNED NOT NULL',
+        '  uid          INT UNSIGNED NOT NULL',
+    ];
+    foreach ($campos as $campo => $tipo) {
+        if ($campo === 'uid' || !dados_nome_valido($campo)) {
+            continue;
+        }
+        $linhas[] = '  ' . str_pad(dados_coluna_para($campo), 12) . ' ' . DADOS_TIPOS_SQL[$tipo];
+    }
+    $linhas[] = '  extras       LONGTEXT NULL';
+    $linhas[] = '  criado_em    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP';
+    $linhas[] = '  alterado_em  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
+    $linhas[] = '  alterado_por INT UNSIGNED NULL';
+    $linhas[] = '  PRIMARY KEY (id)';
+    $linhas[] = '  UNIQUE KEY uq_' . substr($colecao, 0, 40) . ' (app_id, uid)';
+    $linhas[] = '  CONSTRAINT fk_' . substr($colecao, 0, 40)
+              . '_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE';
+
+    return [
+        'tipo'    => 'tabela',
+        'colecao' => $colecao,
+        'tabela'  => $tabela,
+        'sql'     => "CREATE TABLE IF NOT EXISTS $tabela (\n" . implode(",\n", $linhas)
+                   . "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    ];
+}
+
+/** ALTER TABLE ... ADD COLUMN de um campo novo. */
+function dados_sql_acrescentar_coluna(string $tabela, string $campo, string $tipo): array
+{
+    $coluna = dados_coluna_para($campo);
+    return [
+        'tipo'    => 'coluna',
+        'tabela'  => $tabela,
+        'campo'   => $campo,
+        'coluna'  => $coluna,
+        'sql'     => "ALTER TABLE $tabela ADD COLUMN $coluna " . DADOS_TIPOS_SQL[$tipo],
+    ];
+}
+
+/**
+ * Corre o SQL em falta.
+ *
+ * Só cria tabelas e acrescenta colunas — as duas únicas formas que a
+ * função sabe escrever. Não há aqui caminho para DROP nem para ALTER de
+ * uma coluna que já exista, e o SQL não vem do ficheiro: é gerado a
+ * partir de nomes e tipos que passaram pela lista fechada.
+ *
+ * @return array{feitos:array, falhados:array}
+ */
+function dados_aplicar_sql(int $appId, array $manifesto, ?int $userId): array
+{
+    $d = dados_diferencas($appId, $manifesto);
+    $feitos = $falhados = [];
+
+    foreach ($d['sql'] as $passo) {
+        try {
+            db()->exec($passo['sql']);
+
+            if ($passo['tipo'] === 'tabela') {
+                q('INSERT INTO app_colecoes (app_id, colecao, tabela) VALUES (?,?,?)
+                   ON DUPLICATE KEY UPDATE tabela = VALUES(tabela)',
+                  [$appId, $passo['colecao'], $passo['tabela']]);
+                // As colunas da tabela nova passam a estar registadas.
+                foreach (dados_campos_declarados($manifesto)[$passo['colecao']] ?? [] as $campo => $tipo) {
+                    if (!dados_nome_valido($campo)) {
+                        continue;
+                    }
+                    q('INSERT INTO app_campos (app_id, colecao, campo, tipo, coluna) VALUES (?,?,?,?,?)
+                       ON DUPLICATE KEY UPDATE coluna = VALUES(coluna)',
+                      [$appId, $passo['colecao'], $campo, $tipo,
+                       $campo === 'uid' ? 'uid' : dados_coluna_para($campo)]);
+                }
+            } else {
+                q('UPDATE app_campos SET coluna = ? WHERE app_id = ? AND colecao = ? AND campo = ?',
+                  [$passo['coluna'], $appId, dados_colecao_da_tabela($appId, $passo['tabela']),
+                   $passo['campo']]);
+            }
+            $feitos[] = $passo;
+        } catch (PDOException $ex) {
+            $falhados[] = $passo + ['erro' => $ex->getMessage()];
+        }
+    }
+
+    if ($feitos) {
+        audit('update', 'app', $appId, 'Estrutura de dados actualizada: '
+            . count($feitos) . ' alteração(ões)', null,
+            ['sql' => array_column($feitos, 'sql')], $userId);
+    }
+    return ['feitos' => $feitos, 'falhados' => $falhados];
+}
+
+/** Coleção a que pertence uma tabela. */
+function dados_colecao_da_tabela(int $appId, string $tabela): string
+{
+    foreach (dados_colecoes($appId) as $colecao => $def) {
+        if ($def['tabela'] === $tabela) {
+            return $colecao;
+        }
+    }
+    return '';
+}
+
+// ---------------------------------------------------------------------
 // Ler e gravar
 // ---------------------------------------------------------------------
 
 /** Converte uma linha da base de dados na forma que a aplicação espera. */
-function dados_linha_para_app(array $linha, string $colecao): array
+function dados_linha_para_app(int $appId, array $linha, string $colecao): array
 {
     $out = [];
-    foreach (DADOS_COLUNAS[$colecao] as $campo => $coluna) {
-        $v = $linha[$coluna] ?? null;
-        if ($campo === 'closed') {
+    foreach (dados_colunas($appId, $colecao) as $campo => $coluna) {
+        if (!array_key_exists($coluna, $linha)) {
+            continue;   // coluna registada mas ainda não criada
+        }
+        $v    = $linha[$coluna];
+        $tipo = dados_tipo($appId, $colecao, $campo);
+        if ($tipo === 'booleano') {
             $out[$campo] = (int)$v === 1;
-        } elseif (in_array($campo, ['uid', 'workUid', 'progress'], true)) {
+        } elseif ($tipo === 'inteiro') {
             $out[$campo] = (int)$v;
-        } elseif ($campo === 'value') {
+        } elseif ($tipo === 'decimal') {
             $out[$campo] = $v === null ? '' : (string)(float)$v;
         } else {
             $out[$campo] = $v === null ? '' : (string)$v;
         }
     }
-    // Campos que a aplicação passou a enviar e ainda não têm coluna.
+    // Campos que a aplicação enviou e ainda não têm coluna.
     $extras = json_decode((string)($linha['extras'] ?? ''), true);
     if (is_array($extras)) {
         foreach ($extras as $k => $v) {
@@ -221,58 +525,70 @@ function dados_linha_para_app(array $linha, string $colecao): array
 /** Tudo o que a aplicação precisa para arrancar. */
 function dados_ler(int $appId): array
 {
-    $obras = [];
-    foreach (q_all('SELECT * FROM app_obras WHERE app_id = ? ORDER BY uid', [$appId]) as $r) {
-        $obras[] = dados_linha_para_app($r, 'obras');
-    }
+    $out = [];
 
-    $dias = [];
-    foreach (q_all('SELECT d.plano_id, d.dia, d.descricao
-                      FROM app_planeamento_dias d
-                      JOIN app_planeamentos p ON p.id = d.plano_id
-                     WHERE p.app_id = ?', [$appId]) as $r) {
-        $dias[(int)$r['plano_id']][$r['dia']] = (string)$r['descricao'];
-    }
+    foreach (dados_colecoes($appId) as $colecao => $def) {
+        $linhas = [];
+        foreach (q_all('SELECT * FROM ' . $def['tabela'] . ' WHERE app_id = ? ORDER BY uid',
+                       [$appId]) as $r) {
+            $linhas[(int)$r['id']] = dados_linha_para_app($appId, $r, $colecao);
+        }
 
-    $planos = [];
-    foreach (q_all('SELECT * FROM app_planeamentos WHERE app_id = ? ORDER BY uid', [$appId]) as $r) {
-        $p = dados_linha_para_app($r, 'planeamentos');
-        // Pela ordem da semana, para o ficheiro sair sempre igual.
-        $p['days'] = [];
-        foreach (DADOS_DIAS as $d) {
-            if (isset($dias[(int)$r['id']][$d])) {
-                $p['days'][$d] = $dias[(int)$r['id']][$d];
+        if ($def['dias'] && $linhas) {
+            $dias = [];
+            foreach (q_all('SELECT d.plano_id, d.dia, d.descricao
+                              FROM app_planeamento_dias d
+                              JOIN app_planeamentos p ON p.id = d.plano_id
+                             WHERE p.app_id = ?', [$appId]) as $r) {
+                $dias[(int)$r['plano_id']][$r['dia']] = (string)$r['descricao'];
+            }
+            foreach ($linhas as $id => $_) {
+                // Pela ordem da semana, para sair sempre igual.
+                $linhas[$id]['days'] = [];
+                foreach (DADOS_DIAS as $d) {
+                    if (isset($dias[$id][$d])) {
+                        $linhas[$id]['days'][$d] = $dias[$id][$d];
+                    }
+                }
             }
         }
-        $planos[] = $p;
+        $out[$colecao] = array_values($linhas);
     }
 
     $defs = [];
     foreach (q_all('SELECT chave, valor FROM app_definicoes WHERE app_id = ?', [$appId]) as $r) {
         $defs[$r['chave']] = $r['valor'];
     }
+    $out['definicoes'] = (object)$defs;
 
-    return ['obras' => $obras, 'planeamentos' => $planos, 'definicoes' => (object)$defs];
+    return $out;
 }
 
 /** Normaliza um valor para a coluna a que se destina. */
-function dados_valor(string $campo, $v)
+function dados_valor(string $tipo, $v)
 {
-    if ($campo === 'closed') {
+    if ($tipo === 'booleano') {
         return ($v === true || $v === 1 || $v === '1' || $v === 'true') ? 1 : 0;
     }
-    if (in_array($campo, ['uid', 'workUid', 'progress'], true)) {
+    if ($tipo === 'inteiro') {
         return (int)$v;
     }
-    if ($campo === 'value') {
+    if ($tipo === 'decimal') {
         $s = trim((string)$v);
         return $s === '' ? null : (float)str_replace(',', '.', $s);
     }
-    if (in_array($campo, ['fpsEnd', 'closedAt', 'week'], true)) {
+    if ($tipo === 'data') {
         $s = trim((string)$v);
         // A aplicação usa ISO (aaaa-mm-dd); qualquer outra coisa vira NULL,
         // que é honesto: melhor vazio do que uma data inventada.
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $s) ? $s : null;
+    }
+    if ($tipo === 'datahora') {
+        $s = trim((string)$v);
+        return preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/', $s) ? str_replace('T', ' ', substr($s, 0, 19)) : null;
+    }
+    if ($tipo === 'texto_longo') {
+        return (string)$v;
     }
     return mb_substr(trim((string)$v), 0, 255);
 }
@@ -280,71 +596,41 @@ function dados_valor(string $campo, $v)
 /**
  * Grava tudo o que a aplicação enviou.
  *
- * A aplicação manda sempre as coleções inteiras — é assim que ela
- * própria funciona do lado do browser. Aqui isso traduz-se em: inserir ou
+ * A aplicação manda as coleções inteiras — é assim que ela própria
+ * funciona do lado do browser. Aqui isso traduz-se em: inserir ou
  * actualizar o que veio, e apagar o que deixou de vir. Tudo numa
  * transacção, para nunca ficar meio gravado.
  *
- * @return array{obras:int, planeamentos:int, apagados:int, extras:array}
+ * Uma coleção que não vem no pedido não é uma coleção vazia: é uma
+ * coleção sobre a qual não foi dito nada, e fica intacta.
  */
 function dados_gravar(int $appId, array $payload, ?int $userId): array
 {
-    // Uma coleção que não vem no pedido não é uma coleção vazia: é uma
-    // coleção sobre a qual não foi dito nada. A diferença importa, porque
-    // "vazia" aqui significa apagar tudo. Quem só muda uma definição
-    // manda só a definição, e as obras ficam onde estão.
-    $temObras  = array_key_exists('obras', $payload) && is_array($payload['obras']);
-    $temPlanos = array_key_exists('planeamentos', $payload) && is_array($payload['planeamentos']);
-    $obras  = $temObras ? $payload['obras'] : [];
-    $planos = $temPlanos ? $payload['planeamentos'] : [];
-    $defs   = isset($payload['definicoes']) && is_array($payload['definicoes'])
-            ? $payload['definicoes'] : [];
-
+    $colecoes = dados_colecoes($appId);
     $extrasVistos = [];
+    $contagem = [];
+    $apagados = 0;
+
     $db = db();
     $db->beginTransaction();
     try {
-        $uidsObras = $temObras
-            ? dados_gravar_colecao($appId, 'obras', 'app_obras', $obras, $userId, $extrasVistos)
-            : [];
-        $uidsPlanos = $temPlanos
-            ? dados_gravar_colecao($appId, 'planeamentos', 'app_planeamentos', $planos,
-                                   $userId, $extrasVistos)
-            : [];
+        foreach ($colecoes as $colecao => $def) {
+            if (!array_key_exists($colecao, $payload) || !is_array($payload[$colecao])) {
+                continue;
+            }
+            $linhas = $payload[$colecao];
+            $uids = dados_gravar_colecao($appId, $colecao, $def['tabela'], $linhas,
+                                         $userId, $extrasVistos);
+            $contagem[$colecao] = count($uids);
 
-        // Dias de cada planeamento.
-        foreach ($temPlanos ? $planos : [] as $p) {
-            if (!is_array($p) || !isset($p['uid'])) {
-                continue;
+            if ($def['dias']) {
+                dados_gravar_dias($appId, $linhas);
             }
-            $planoId = (int)q_val('SELECT id FROM app_planeamentos WHERE app_id = ? AND uid = ?',
-                                  [$appId, (int)$p['uid']]);
-            if (!$planoId) {
-                continue;
-            }
-            $days = isset($p['days']) && is_array($p['days']) ? $p['days'] : [];
-            $manter = [];
-            foreach (DADOS_DIAS as $d) {
-                if (!array_key_exists($d, $days)) {
-                    continue;
-                }
-                $manter[] = $d;
-                q('INSERT INTO app_planeamento_dias (plano_id, dia, descricao) VALUES (?,?,?)
-                   ON DUPLICATE KEY UPDATE descricao = VALUES(descricao)',
-                  [$planoId, $d, (string)$days[$d]]);
-            }
-            if ($manter) {
-                $in = implode(',', array_fill(0, count($manter), '?'));
-                q("DELETE FROM app_planeamento_dias WHERE plano_id = ? AND dia NOT IN ($in)",
-                  array_merge([$planoId], $manter));
-            } else {
-                q('DELETE FROM app_planeamento_dias WHERE plano_id = ?', [$planoId]);
-            }
+            $apagados += dados_apagar_ausentes($appId, $def['tabela'], $uids);
         }
 
-        $apagados = ($temObras ? dados_apagar_ausentes($appId, 'app_obras', $uidsObras) : 0)
-                  + ($temPlanos ? dados_apagar_ausentes($appId, 'app_planeamentos', $uidsPlanos) : 0);
-
+        $defs = isset($payload['definicoes']) && is_array($payload['definicoes'])
+              ? $payload['definicoes'] : [];
         foreach ($defs as $chave => $valor) {
             q('INSERT INTO app_definicoes (app_id, chave, valor) VALUES (?,?,?)
                ON DUPLICATE KEY UPDATE valor = VALUES(valor)',
@@ -357,29 +643,61 @@ function dados_gravar(int $appId, array $payload, ?int $userId): array
         throw $ex;
     }
 
-    return ['obras' => count($uidsObras), 'planeamentos' => count($uidsPlanos),
-            'apagados' => $apagados, 'extras' => array_values(array_unique($extrasVistos))];
+    return $contagem + ['apagados' => $apagados,
+                        'extras' => array_values(array_unique($extrasVistos))];
+}
+
+/** Dias em obra de cada planeamento. */
+function dados_gravar_dias(int $appId, array $linhas): void
+{
+    foreach ($linhas as $p) {
+        if (!is_array($p) || !isset($p['uid'])) {
+            continue;
+        }
+        $planoId = (int)q_val('SELECT id FROM app_planeamentos WHERE app_id = ? AND uid = ?',
+                              [$appId, (int)$p['uid']]);
+        if (!$planoId) {
+            continue;
+        }
+        $days   = isset($p['days']) && is_array($p['days']) ? $p['days'] : [];
+        $manter = [];
+        foreach (DADOS_DIAS as $d) {
+            if (!array_key_exists($d, $days)) {
+                continue;
+            }
+            $manter[] = $d;
+            q('INSERT INTO app_planeamento_dias (plano_id, dia, descricao) VALUES (?,?,?)
+               ON DUPLICATE KEY UPDATE descricao = VALUES(descricao)',
+              [$planoId, $d, (string)$days[$d]]);
+        }
+        if ($manter) {
+            $in = implode(',', array_fill(0, count($manter), '?'));
+            q("DELETE FROM app_planeamento_dias WHERE plano_id = ? AND dia NOT IN ($in)",
+              array_merge([$planoId], $manter));
+        } else {
+            q('DELETE FROM app_planeamento_dias WHERE plano_id = ?', [$planoId]);
+        }
+    }
 }
 
 /** Insere ou actualiza uma coleção inteira. Devolve os uid que ficaram. */
 function dados_gravar_colecao(int $appId, string $colecao, string $tabela, array $linhas,
                               ?int $userId, array &$extrasVistos): array
 {
-    $mapa  = DADOS_COLUNAS[$colecao];
-    $uids  = [];
+    $mapa = dados_colunas($appId, $colecao);
+    $uids = [];
 
     foreach ($linhas as $linha) {
         if (!is_array($linha) || !isset($linha['uid'])) {
             continue;
         }
-        $uid    = (int)$linha['uid'];
-        $uids[] = $uid;
+        $uids[] = (int)$linha['uid'];
 
         $cols = ['app_id'];
         $vals = [$appId];
         foreach ($mapa as $campo => $coluna) {
             $cols[] = $coluna;
-            $vals[] = dados_valor($campo, $linha[$campo] ?? '');
+            $vals[] = dados_valor(dados_tipo($appId, $colecao, $campo), $linha[$campo] ?? '');
         }
 
         // O que a aplicação enviou e ainda não tem coluna fica em extras,
@@ -389,8 +707,8 @@ function dados_gravar_colecao(int $appId, string $colecao, string $tabela, array
             if (isset($mapa[$campo]) || $campo === 'days') {
                 continue;
             }
-            $extras[$campo]  = $v;
-            $extrasVistos[]  = $colecao . '.' . $campo;
+            $extras[$campo] = $v;
+            $extrasVistos[] = $colecao . '.' . $campo;
         }
         $cols[] = 'extras';
         $vals[] = $extras ? json_encode($extras, JSON_UNESCAPED_UNICODE) : null;

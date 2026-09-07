@@ -39,15 +39,18 @@ function avisar_campos(?array $campos, int $appId, string $nome): void
         return;
     }
     if ($campos['novos']) {
-        $semColuna = array_filter($campos['novos'], static fn($c) => !$c['tem_coluna']);
         $msg = 'Atenção: esta versão traz ' . count($campos['novos']) . ' campo(s) que a versão '
              . 'anterior não tinha — ' . $diz($campos['novos']) . '.';
-        if ($semColuna) {
-            $msg .= ' Destes, ' . count($semColuna) . ' não têm coluna própria: os valores ficam '
-                  . 'guardados na coluna "extras" e continuam a chegar à aplicação, mas não dão '
-                  . 'para pesquisar nem para relatórios enquanto não lhes for dada coluna.';
-        }
         flash('warn', $msg);
+    }
+    if ($campos['sql']) {
+        $n = count($campos['sql']);
+        $t = count($campos['tabelas_novas']);
+        flash('warn', 'Falta espaço na base de dados para ' . ($t ? $t . ' tabela(s) e ' : '')
+            . ($n - $t) . ' coluna(s). O SQL está escrito e pronto — veja "Estrutura de dados" '
+            . 'aqui em baixo e carregue em "Aplicar" para o correr. Até lá os valores ficam '
+            . 'guardados na coluna "extras": chegam à aplicação na mesma, mas não dão para '
+            . 'pesquisa nem para relatórios.');
     }
     if ($campos['desaparecidos']) {
         flash('warn', 'Esta versão deixou de declarar ' . count($campos['desaparecidos'])
@@ -90,6 +93,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit('update', 'app', $id, 'Nova versão (' . (int)$v['version'] . ') de ' . $app['name']);
             flash('ok', 'Versão ' . (int)$v['version'] . ' publicada. Os utilizadores passam a ver esta.');
             avisar_campos($campos, $id, (string)$app['name']);
+            redirect('apps.php?id=' . $id);
+        }
+
+        if ($action === 'estrutura') {
+            $manifesto = dados_manifesto_da_app($app);
+            if (!$manifesto) {
+                throw new RuntimeException('Esta aplicação não declara campos.');
+            }
+            $r = dados_aplicar_sql($id, $manifesto, (int)$me['id']);
+            if ($r['feitos']) {
+                flash('ok', count($r['feitos']) . ' alteração(ões) aplicadas à base de dados. '
+                    . 'Os campos passam a ter coluna própria.');
+            }
+            foreach ($r['falhados'] as $f) {
+                flash('warn', 'Falhou: ' . $f['sql'] . ' — ' . $f['erro']);
+            }
+            if (!$r['feitos'] && !$r['falhados']) {
+                flash('ok', 'Não havia nada por aplicar.');
+            }
             redirect('apps.php?id=' . $id);
         }
 
@@ -386,6 +408,93 @@ layout_head('Aplicações', 'app', '../');
   </form>
 </div>
 <?php endif; ?>
+
+<?php
+  // Só aparece nas aplicações que declaram o que guardam. As outras
+  // continuam a guardar no browser e não têm estrutura para mostrar.
+  $manifesto = dados_manifesto_da_app($open);
+  if ($manifesto):
+      $dif      = dados_diferencas((int)$open['id'], $manifesto);
+      $regs     = dados_campos_registados((int)$open['id']);
+      $colecoes = dados_colecoes((int)$open['id']);
+?>
+<div class="card">
+  <h2>Estrutura de dados</h2>
+  <p class="muted">
+    O que esta aplicação declara guardar, e o que existe na base de dados para o receber.
+  </p>
+
+  <?php if ($dif['sql']): ?>
+    <div class="alert warn" style="margin-top:14px">
+      <b>Falta espaço para <?= count($dif['sql']) ?> coisa(s).</b>
+      Até isto ser aplicado, os valores desses campos ficam guardados na coluna
+      <code>extras</code> — chegam à aplicação na mesma, mas não dão para pesquisa
+      nem para relatórios feitos na base de dados.
+    </div>
+
+    <p class="nota" style="margin:12px 0 6px">
+      Este é o SQL que vai correr. Só cria tabelas e acrescenta colunas: não apaga
+      nem altera nada do que já existe.
+    </p>
+    <pre class="sql"><?php foreach ($dif['sql'] as $p) { echo e($p['sql']) . ";\n\n"; } ?></pre>
+
+    <form method="post" onsubmit="return confirm('Vai correr este SQL na base de dados. Continuar?')">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="estrutura">
+      <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
+      <button class="primary" type="submit">Aplicar à base de dados</button>
+    </form>
+  <?php else: ?>
+    <div class="alert ok" style="margin-top:14px">
+      A base de dados tem tudo o que esta versão declara. Não há nada por aplicar.
+    </div>
+  <?php endif; ?>
+
+  <?php foreach ($regs as $colecao => $lista): ?>
+    <h3 style="margin:20px 0 8px"><?= e($colecao) ?>
+      <span class="muted" style="font-weight:400;font-size:13px">
+        <?php if ($colecao === 'definicoes'): ?>
+          &middot; <code>app_definicoes</code> (chave e valor)
+        <?php elseif (isset($colecoes[$colecao])): ?>
+          &middot; <code><?= e($colecoes[$colecao]['tabela']) ?></code>
+        <?php else: ?>
+          &middot; <b>sem tabela</b>
+        <?php endif; ?>
+      </span>
+    </h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Coluna</th></tr></thead>
+        <tbody>
+        <?php foreach ($lista as $c):
+            $temColuna = $colecao === 'definicoes'
+                       || $c['coluna'] !== null
+                       || isset(DADOS_COLUNAS[$colecao][$c['campo']]); ?>
+          <tr>
+            <td class="mono"><?= e($c['campo']) ?></td>
+            <td class="muted"><?= e($c['tipo']) ?></td>
+            <td>
+              <?php if ($temColuna): ?>
+                <span class="tag on">tem coluna</span>
+              <?php else: ?>
+                <span class="tag off">em <code>extras</code></span>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endforeach; ?>
+
+  <p class="nota" style="margin-top:16px">
+    Quem escreve a declaração é quem faz a aplicação. Se pedir uma versão nova ao
+    ChatGPT, peça que mantenha o bloco <code>setronix-dados</code> e que lhe acrescente
+    os campos novos — é por aí que a plataforma sabe que existem.
+  </p>
+</div>
+<?php endif; ?>
+
 
 <div class="card">
   <h2>Nova aplicação</h2>

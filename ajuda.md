@@ -393,16 +393,21 @@ Uma aplicação diz o que guarda através de um bloco, dentro do próprio fichei
 Ao receber o ficheiro, a plataforma compara os campos declarados com os que já conhecia dessa aplicação, e diz-lhe o que mudou:
 
 - **Campos novos** — mostra a lista. Fica registado que existem.
+- **Falta espaço na base de dados** — diz quantas tabelas e colunas faltam, e manda-o ao painel **Estrutura de dados**, onde está o SQL pronto a correr.
 - **Campos que desapareceram** — mostra a lista. Os dados já gravados **não são apagados**.
 - **Nada mudou** — não diz nada.
 
 O envio nunca é bloqueado por causa disto: o aviso é informação, não uma barreira.
 
-### Campos novos e colunas
+### Campos novos, colunas novas, tabelas novas
 
-A plataforma **não altera tabelas sozinha**. Um ficheiro HTML vem de fora, e dar-lhe o poder de mexer na estrutura da base de dados era abrir uma porta que não se fecha.
+Quando falta espaço na base de dados para o que a aplicação declara, a plataforma **escreve o SQL** que resolve isso — a coluna nova, ou a tabela nova inteira — e mostra-o em **Administração → Aplicações → (a aplicação) → Estrutura de dados**. Lá está o SQL tal e qual vai correr, e um botão **Aplicar à base de dados**.
 
-Um campo novo que ainda não tenha coluna própria continua a funcionar: o valor é guardado à mesma, numa coluna de reserva, e volta a chegar à aplicação como ela o deixou. O que não dá, enquanto não tiver coluna, é **pesquisar por ele ou usá-lo em relatórios feitos na base de dados**. É por isso que o aviso o distingue — para se saber quando vale a pena pedir a coluna.
+Nada corre sozinho. Um ficheiro HTML vem de fora, e dar-lhe o poder de mexer na estrutura da base de dados sem ninguém ver era abrir uma porta que não se fecha. Por isso quem carrega no botão é um administrador, depois de ler o SQL.
+
+O que esse botão pode fazer é limitado a duas coisas: **criar uma tabela** e **acrescentar colunas**. Nunca apagar, nunca alterar o que já existe. Os nomes e os tipos passam por uma lista fechada antes de chegarem ao SQL, e as tabelas criadas assim começam sempre por `app_` — a declaração não chega às tabelas da própria plataforma.
+
+**Enquanto não aplicar, nada se perde.** O valor de um campo sem coluna é guardado à mesma, numa coluna de reserva, e volta a chegar à aplicação como ela o deixou. O que não dá, até ter coluna, é **pesquisar por ele ou usá-lo em relatórios feitos na base de dados**. O painel mostra, campo a campo, quais estão de que lado.
 
 ### E se o servidor falhar a meio?
 

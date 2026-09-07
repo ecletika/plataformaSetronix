@@ -264,6 +264,8 @@ header.topbar a.brand img{height:28px;width:auto;display:block;filter:var(--logo
 .authlogo img{height:58px;width:auto;max-width:100%;display:block}
 .authname{text-align:center;font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}
 .authsub{text-align:center;color:var(--muted);font-size:13px;margin:0 0 18px}
+/* SQL por aplicar: mostra-se tal e qual vai correr. */
+pre.sql{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:12px/1.6 ui-monospace,Consolas,monospace;color:var(--ink-2);margin:0 0 14px;white-space:pre}
 footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </style>
 </head>

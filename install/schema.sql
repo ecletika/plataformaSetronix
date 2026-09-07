@@ -225,18 +225,47 @@ ON DUPLICATE KEY UPDATE svalue = svalue;
 
 -- Registo dos campos que cada versao da aplicacao declara guardar.
 -- E o que permite avisar quando uma versao nova traz campos novos.
+--
+-- coluna: nome da coluna que guarda o campo, quando ele tem coluna
+-- propria. A NULL, o valor vive na coluna "extras" da linha -- nao se
+-- perde, mas nao da para pesquisa nem para relatorios.
 CREATE TABLE IF NOT EXISTS app_campos (
   id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
   app_id       INT UNSIGNED NOT NULL,
   colecao      VARCHAR(64)  NOT NULL,
   campo        VARCHAR(64)  NOT NULL,
   tipo         VARCHAR(32)  NOT NULL DEFAULT 'texto',
-  tem_coluna   TINYINT(1)   NOT NULL DEFAULT 0,
+  coluna       VARCHAR(64)  NULL,
   visto_em     INT UNSIGNED NULL,
   criado_em    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_campo (app_id, colecao, campo),
   CONSTRAINT fk_campos_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Quem correu o schema antes de a coluna existir. O IF nao existe em
+-- ADD COLUMN, por isso a verificacao e feita antes de preparar o SQL.
+SET @tem := (SELECT COUNT(*) FROM information_schema.columns
+              WHERE table_schema = DATABASE()
+                AND table_name = 'app_campos' AND column_name = 'coluna');
+SET @sql := IF(@tem = 0,
+  'ALTER TABLE app_campos ADD COLUMN coluna VARCHAR(64) NULL AFTER tipo', 'DO 0');
+PREPARE passo FROM @sql;
+EXECUTE passo;
+DEALLOCATE PREPARE passo;
+
+-- Coleccoes criadas a partir de uma declaracao, e a tabela de cada uma.
+-- As que vieram com a plataforma (obras, planeamentos) nao estao aqui:
+-- essas existem desde o principio e estao escritas no codigo.
+CREATE TABLE IF NOT EXISTS app_colecoes (
+  id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  app_id    INT UNSIGNED NOT NULL,
+  colecao   VARCHAR(64) NOT NULL,
+  tabela    VARCHAR(64) NOT NULL,
+  criada_em DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_colecao (app_id, colecao),
+  CONSTRAINT fk_colecoes_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Obras.
