@@ -314,6 +314,9 @@ layout_head('Aplicações', 'app', '../');
             <td class="actions">
               <a class="btn" target="_blank" rel="noopener"
                  href="../app_raw.php?id=<?= (int)$open['id'] ?>&v=<?= (int)$v['id'] ?>">Pré-ver</a>
+              <a class="btn" download
+                 href="../app_raw.php?id=<?= (int)$open['id'] ?>&v=<?= (int)$v['id'] ?>&transferir=1"
+                 title="Guardar este ficheiro no computador">Transferir</a>
               <?php if (!$isCur): ?>
                 <form method="post" style="display:inline">
                   <?= csrf_field() ?>

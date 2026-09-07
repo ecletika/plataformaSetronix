@@ -9,6 +9,7 @@
  *
  * ?id=N              versão ativa
  * ?id=N&v=ID         uma versão concreta (pré-visualização, só para gestores)
+ * ?id=N&transferir=1 descarrega o ficheiro tal como foi enviado
  *
  * Se a página declarar campos (o bloco JSON "setronix-dados"), os dados
  * dessa aplicação são injectados no topo do HTML antes de ser entregue.
@@ -51,6 +52,32 @@ if (!is_file($path)) {
 }
 
 $html = (string)file_get_contents($path);
+
+// A transferir é o ficheiro que interessa, não a página a correr: vai
+// tal como foi enviado, sem os dados injectados. É o que se leva para o
+// ChatGPT para pedir a versão seguinte — com os dados lá dentro, iria de
+// caminho o trabalho da empresa para fora.
+if (isset($_GET['transferir'])) {
+    if (!can('apps.manage')) {
+        http_response_code(403);
+        exit('Sem permissão para descarregar o ficheiro.');
+    }
+    $nome = (string)($version['filename'] ?? 'aplicacao.html');
+    // Só o nome do ficheiro, sem caminho, sem aspas nem quebras de linha:
+    // é isto que vai dentro de um cabeçalho HTTP.
+    $nome = preg_replace('/[^A-Za-z0-9._-]+/', '_', basename($nome));
+    if ($nome === '' || !preg_match('/\.html?$/i', $nome)) {
+        $nome = 'aplicacao.html';
+    }
+    $nome = 'v' . (int)$version['version'] . '-' . $nome;
+
+    header('Content-Type: text/html; charset=utf-8');
+    header('Content-Length: ' . (string)strlen($html));
+    header('Content-Disposition: attachment; filename="' . $nome . '"');
+    header('Cache-Control: private, no-store, must-revalidate');
+    echo $html;
+    exit;
+}
 
 // Aplicações que declaram campos recebem os dados já dentro da página.
 // As outras seguem tal e qual foram enviadas — continuam a guardar no

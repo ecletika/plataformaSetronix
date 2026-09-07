@@ -182,6 +182,8 @@ Para uma aplicação já existente (clicada em "Gerir"):
    - **Nota** — descrição introduzida no envio.
    - **Botões:**
      - "Pré-ver" — abre a versão num novo separador.
+     - "Transferir" — guarda o ficheiro HTML no computador, **tal como foi enviado**. É a partir daqui que se continua o trabalho: transfere-se a versão em uso, entrega-se ao ChatGPT com o que se quer mudar, e o ficheiro que ele devolver envia-se aqui como versão nova. Assim cada alteração parte da que está no ar, e não de uma cópia antiga que alguém tinha à mão.
+       O ficheiro vai limpo, sem os dados da empresa lá dentro — esses ficam na base de dados, e não têm de sair daqui para se pedir uma alteração.
      - "Repor" (apenas se não é a versão ativa) — marca esta versão como ativa. Todos os utilizadores passam a ver esta.
      - "Apagar" (apenas se não é a versão ativa) — remove a versão do servidor. Aparece uma confirmação.
 
