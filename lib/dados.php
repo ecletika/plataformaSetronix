@@ -728,6 +728,40 @@ function dados_gravar_colecao(int $appId, string $colecao, string $tabela, array
     return $uids;
 }
 
+/**
+ * Apaga todos os dados de uma aplicação.
+ *
+ * Existe porque a aplicação em si não deve poder fazer isto: um botão
+ * dentro da página é carregado por qualquer pessoa que a abra, e o que
+ * ela apagaria é o trabalho de toda a gente. Aqui é preciso ser
+ * administrador, escrever o nome da aplicação, e fica no log.
+ *
+ * A estrutura fica de pé — tabelas, colunas e o registo de campos. O que
+ * desaparece são as linhas.
+ *
+ * @return array Quantas linhas foram apagadas, por coleção.
+ */
+function dados_apagar_tudo(int $appId): array
+{
+    $contagem = [];
+    $db = db();
+    $db->beginTransaction();
+    try {
+        foreach (dados_colecoes($appId) as $colecao => $def) {
+            // Os dias saem por arrasto da chave estrangeira do planeamento.
+            $contagem[$colecao] = (int)q('DELETE FROM ' . $def['tabela'] . ' WHERE app_id = ?',
+                                         [$appId])->rowCount();
+        }
+        $contagem['definicoes'] = (int)q('DELETE FROM app_definicoes WHERE app_id = ?',
+                                         [$appId])->rowCount();
+        $db->commit();
+    } catch (Throwable $ex) {
+        $db->rollBack();
+        throw $ex;
+    }
+    return $contagem;
+}
+
 /** Apaga as linhas que a aplicação deixou de enviar. */
 function dados_apagar_ausentes(int $appId, string $tabela, array $uids): int
 {

@@ -115,6 +115,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('apps.php?id=' . $id);
         }
 
+        if ($action === 'apagar_dados') {
+            if (strtolower(trim((string)($_POST['confirm'] ?? ''))) !== strtolower((string)$app['name'])) {
+                throw new RuntimeException('Para apagar os dados, escreva o nome exacto da aplicação.');
+            }
+            $r = dados_apagar_tudo($id);
+            $total = array_sum($r);
+            audit('delete', 'app', $id, 'Dados apagados: ' . $app['name'] . ' (' . $total . ' linhas)',
+                  $r, null, (int)$me['id'], $me['username']);
+            flash('warn', $total . ' linha(s) apagadas. A estrutura ficou de pé: as tabelas e as '
+                . 'colunas continuam lá, prontas a receber dados novos.');
+            redirect('apps.php?id=' . $id);
+        }
+
         if ($action === 'edit') {
             $name = trim((string)($_POST['name'] ?? ''));
             if ($name === '') {
@@ -486,6 +499,29 @@ layout_head('Aplicações', 'app', '../');
       </table>
     </div>
   <?php endforeach; ?>
+
+  <details class="gaveta" style="width:auto;margin-top:20px">
+    <summary class="perigo">Apagar todos os dados desta aplicação</summary>
+    <div class="gaveta-corpo">
+      <p class="nota" style="margin:0 0 8px">
+        Apaga as linhas de todas as coleções — o trabalho de toda a gente, não só o seu.
+        <b>Não há como desfazer.</b> A estrutura fica de pé: tabelas, colunas e o registo
+        de campos continuam lá, prontos a receber dados novos.
+      </p>
+      <p class="nota" style="margin:0 0 8px">
+        É aqui e não dentro da aplicação de propósito. Um botão dentro da página é
+        carregado por qualquer pessoa que a abra.
+      </p>
+      <form method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="apagar_dados">
+        <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
+        <input type="text" name="confirm" autocomplete="off" style="margin:0;max-width:260px"
+               placeholder="escreva <?= e($open['name']) ?>" aria-label="Confirmar o nome da aplicação">
+        <button class="danger" type="submit">Apagar os dados</button>
+      </form>
+    </div>
+  </details>
 
   <p class="nota" style="margin-top:16px">
     Quem escreve a declaração é quem faz a aplicação. Se pedir uma versão nova ao

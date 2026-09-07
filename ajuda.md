@@ -409,6 +409,14 @@ O que esse botão pode fazer é limitado a duas coisas: **criar uma tabela** e *
 
 **Enquanto não aplicar, nada se perde.** O valor de um campo sem coluna é guardado à mesma, numa coluna de reserva, e volta a chegar à aplicação como ela o deixou. O que não dá, até ter coluna, é **pesquisar por ele ou usá-lo em relatórios feitos na base de dados**. O painel mostra, campo a campo, quais estão de que lado.
 
+### Apagar os dados
+
+Uma aplicação que grave na plataforma **não apaga tudo a partir de dentro**. Se a página tiver um botão desses — o *Limpar todos os dados* do Planeamento de Obras, por exemplo — ele explica que os dados são partilhados e não apaga nada. A razão é simples: um botão dentro da página é carregado por qualquer pessoa que a abra, e o que apagaria era o trabalho de toda a gente.
+
+Quem apaga é um administrador, em **Administração → Aplicações → (a aplicação) → Estrutura de dados → Apagar todos os dados**, escrevendo o nome da aplicação para confirmar. Fica no log de alterações.
+
+A **estrutura fica de pé**: as tabelas, as colunas e o registo de campos continuam lá, prontos a receber dados novos. O que desaparece são as linhas.
+
 ### E se o servidor falhar a meio?
 
 A aplicação avisa no fundo do ecrã, a vermelho, que as últimas alterações **não** ficaram gravadas, e volta a tentar na gravação seguinte. Nunca dá uma gravação por feita sem o servidor a ter confirmado.
