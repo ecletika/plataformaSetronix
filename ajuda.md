@@ -175,7 +175,7 @@ Para uma aplicação já existente (clicada em "Gerir"):
    - Botão **Publicar esta versão**. A versão anterior fica guardada e pode ser reposta.
 
 2. **Versões** — tabela com todas as versões da aplicação:
-   - **#** — número de versão. A versão ativa tem etiqueta "activa".
+   - **#** — número de versão. A versão ativa tem etiqueta "ativa".
    - **Ficheiro** — nome do ficheiro original enviado.
    - **Tamanho** — tamanho em bytes.
    - **Data** — data e hora do envio.
@@ -200,10 +200,18 @@ Para uma aplicação já existente (clicada em "Gerir"):
    - Caixa de seleção: **Visível para os utilizadores** — quando marcada, a aplicação aparece no ecrã inicial. Quando desmarcada, fica oculta mas não é apagada.
    - Botão **Guardar**.
 
-5. **Apagar** — formulário destrutivo:
+5. **Estrutura de dados** — só aparece nas aplicações que declaram o que guardam:
+   - Diz se falta alguma coisa na base de dados e, se faltar, mostra **o SQL que a resolve** — tal e qual vai correr.
+   - Botão **Aplicar à base de dados** — cria as tabelas e acrescenta as colunas em falta. Nada corre sem alguém carregar aqui.
+   - Tabela por coleção, campo a campo: qual o tipo, e se tem coluna própria ou se está guardado em `extras`.
+   - Gaveta **Apagar todos os dados desta aplicação** — apaga as linhas de todas as coleções, escrevendo o nome da aplicação para confirmar. A estrutura fica de pé. Fica no log de alterações.
+   - Explicado ao pormenor em [Aplicações que guardam dados](#aplicações-que-guardam-dados).
+
+6. **Apagar** — formulário destrutivo:
    - Texto: "Apaga a aplicação e todas as versões do servidor."
    - Campo de confirmação: **Escreva [nome da aplicação] para confirmar**.
    - Botão **Apagar definitivamente**. Após confirmação, a aplicação e todas as versões são removidas permanentemente.
+   - **Leva também os dados.** Se a aplicação gravava na base de dados, as obras, os planeamentos e tudo o resto vão com ela, e o registo de campos também. Para limpar os dados mantendo a aplicação, use antes a gaveta em "Estrutura de dados".
 
 **Nova aplicação:**
 Formulário para criar uma aplicação:

@@ -19,6 +19,31 @@ function md_inline(string $text): string
     $out = preg_replace('/`([^`]+)`/', '<code>$1</code>', $out);
     $out = preg_replace('/\*\*([^*]+)\*\*/', '<b>$1</b>', $out);
     $out = preg_replace('/(?<![\w*])\*([^*]+)\*(?![\w*])/', '<i>$1</i>', $out);
+
+    // Ligações. Sem isto, um [texto](#secção) aparecia tal e qual ao
+    // leitor -- o que é pior do que não ter ligação nenhuma.
+    $out = (string)preg_replace_callback(
+        '/\[([^\]\[]+)\]\(([^)\s]+)\)/',
+        static function (array $m): string {
+            [$tudo, $texto, $destino] = $m;
+
+            // Para outra secção deste manual. A âncora escreve-se como o
+            // título aparece; aqui passa pela mesma transformação que
+            // gerou o id, para as duas baterem certo.
+            if (strncmp($destino, '#', 1) === 0) {
+                return '<a href="#' . e(md_slug(substr($destino, 1))) . '">' . $texto . '</a>';
+            }
+
+            // Para fora, só http e https: um href aceita muito mais do
+            // que isso, e nada do resto tem lugar num manual.
+            if (preg_match('~^https?://[^\s"<>]+$~', $destino)) {
+                return '<a href="' . e($destino) . '" target="_blank" rel="noopener">'
+                     . $texto . '</a>';
+            }
+            return $tudo;   // não se percebe: fica como estava
+        },
+        $out
+    );
     return (string)$out;
 }
 
