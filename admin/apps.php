@@ -471,6 +471,7 @@ layout_head('Aplicações', 'app', '../');
       $dif      = dados_diferencas((int)$open['id'], $manifesto);
       $regs     = dados_campos_registados((int)$open['id']);
       $colecoes = dados_colecoes((int)$open['id']);
+      $contagem = dados_contagens((int)$open['id']);
 ?>
 <div class="card">
   <h2>Estrutura de dados</h2>
@@ -507,6 +508,9 @@ layout_head('Aplicações', 'app', '../');
   <?php foreach ($regs as $colecao => $lista): ?>
     <h3 style="margin:20px 0 8px"><?= e($colecao) ?>
       <span class="muted" style="font-weight:400;font-size:13px">
+        <?php if (isset($contagem[$colecao])): ?>
+          &middot; <b><?= (int)$contagem[$colecao] ?></b> linha(s) gravadas
+        <?php endif; ?>
         <?php if ($colecao === 'definicoes'): ?>
           &middot; <code>app_definicoes</code> (chave e valor)
         <?php elseif (isset($colecoes[$colecao])): ?>

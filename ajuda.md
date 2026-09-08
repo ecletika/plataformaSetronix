@@ -203,7 +203,7 @@ Para uma aplicação já existente (clicada em "Gerir"):
 5. **Estrutura de dados** — só aparece nas aplicações que declaram o que guardam:
    - Diz se falta alguma coisa na base de dados e, se faltar, mostra **o SQL que a resolve** — tal e qual vai correr.
    - Botão **Aplicar à base de dados** — cria as tabelas e acrescenta as colunas em falta. Nada corre sem alguém carregar aqui.
-   - Tabela por coleção, campo a campo: qual o tipo, e se tem coluna própria ou se está guardado em `extras`.
+   - Tabela por coleção, campo a campo: qual o tipo, e se tem coluna própria ou se está guardado em `extras`. O título de cada coleção diz **quantas linhas estão gravadas** — é a forma rápida de confirmar que a aplicação está mesmo a gravar.
    - Gaveta **Apagar todos os dados desta aplicação** — apaga as linhas de todas as coleções, escrevendo o nome da aplicação para confirmar. A estrutura fica de pé. Fica no log de alterações.
    - Explicado ao pormenor em [Aplicações que guardam dados](#aplicações-que-guardam-dados).
 
@@ -461,6 +461,22 @@ O sistema de recursos humanos exporta um ficheiro `.xlsx` com o ano inteiro: um 
 O ficheiro é um **retrato do ano inteiro tirado num dia**, não um acrescento. Guardar metade de um retrato e metade de outro dava um mapa que nunca existiu — por isso a importação apaga o que lá estava e põe o novo.
 
 O ficheiro em si não fica guardado no servidor: o que fica são os dados que vêm lá dentro. O registo de quem importou o quê, e quando, fica no log de alterações.
+
+### O aviso de ausências no planeamento
+
+Com um mapa importado, a aplicação de planeamento passa a avisar quando se põe numa equipa alguém que, segundo o mapa, não vai estar cá.
+
+O aviso aparece em dois sítios: **dentro da janela do planeamento semanal**, à medida que se escolhem as pessoas e os dias, e **outra vez ao guardar**, com a lista de quem falta e porquê.
+
+**É um aviso, não uma barreira.** Dá para guardar na mesma, confirmando. O mapa é um retrato tirado num dia: uma baixa pode acabar mais cedo e umas férias podem ser desmarcadas, e quem está a planear sabe coisas que o mapa ainda não sabe.
+
+### Como as pessoas dos dois lados se ligam
+
+O mapa conhece as pessoas pelo nome completo — *Hugo Emanuel Matos Vieira* — e a aplicação pelo nome curto — *Hugo Vieira*. A ligação faz-se por palavras: se todas as palavras do nome curto estiverem no nome completo, é a mesma pessoa.
+
+Quando o nome curto dá em **duas pessoas diferentes**, ou em nenhuma, **não há aviso**. É de propósito: um aviso a menos é um incómodo, um aviso a mais sobre a pessoa errada desfaz uma equipa sem razão.
+
+Nas listas atuais, dos 58 nomes da aplicação ligam-se 50; os outros 8 são as entradas *Tempo de secagem*, que não são pessoas.
 
 ### Se aparecer um símbolo desconhecido
 

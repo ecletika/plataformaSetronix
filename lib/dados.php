@@ -358,6 +358,24 @@ function dados_registar_campos(int $appId, array $manifesto, ?int $versaoId = nu
     }
 }
 
+/**
+ * Quantas linhas tem cada coleção.
+ *
+ * Serve para responder de relance à pergunta que aparece sempre que
+ * alguém desconfia: "isto está mesmo a gravar?". Sem isto, a resposta
+ * exigia ir à base de dados.
+ */
+function dados_contagens(int $appId): array
+{
+    $out = [];
+    foreach (dados_colecoes($appId) as $colecao => $def) {
+        $out[$colecao] = (int)q_val('SELECT COUNT(*) FROM ' . $def['tabela'] . ' WHERE app_id = ?',
+                                    [$appId]);
+    }
+    $out['definicoes'] = (int)q_val('SELECT COUNT(*) FROM app_definicoes WHERE app_id = ?', [$appId]);
+    return $out;
+}
+
 /** Campos registados de uma aplicação, agrupados por coleção. */
 function dados_campos_registados(int $appId): array
 {

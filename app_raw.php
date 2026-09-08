@@ -21,6 +21,7 @@
 require_once __DIR__ . '/lib/bootstrap.php';
 require_once __DIR__ . '/lib/apps.php';
 require_once __DIR__ . '/lib/dados.php';
+require_once __DIR__ . '/lib/rh.php';
 
 $user = require_login('view');
 
@@ -88,6 +89,13 @@ if (dados_manifesto($html) !== null) {
         'csrf'  => csrf_token(),
         'dados' => dados_ler((int)$app['id']),
     ];
+
+    // Quem está fora, e em que dias. Vai junto com os dados para a
+    // aplicação poder avisar antes de alguém ser posto numa equipa em
+    // dias em que não vai estar cá. Só existe se houver mapa importado.
+    if (rh_mapa_atual((int)$app['id'])) {
+        $boot['rh'] = rh_ausencias((int)$app['id']);
+    }
     // json_encode escapa os acentos para \uXXXX: fica ASCII puro e entra
     // em qualquer página, seja qual for a codificação que ela declare.
     $script = '<script>window.SETRONIX_BOOT=' . json_encode($boot) . ';</script>';

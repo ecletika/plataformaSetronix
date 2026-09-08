@@ -332,6 +332,38 @@ function rh_resumo(int $appId): array
     );
 }
 
+/**
+ * As ausências de toda a gente, para a aplicação as poder consultar.
+ *
+ * Vai num formato apertado — nome, número de RH, e um mapa de dia para
+ * estado — porque isto viaja dentro da página em cada abertura.
+ *
+ * Só ausências: os dias de folha finalizada ou por aprovar não dizem
+ * nada sobre a pessoa estar ou não disponível, e seriam oito mil linhas.
+ */
+function rh_ausencias(int $appId): array
+{
+    $in = implode(',', array_fill(0, count(RH_AUSENTE), '?'));
+    $out = [];
+    foreach (q_all(
+        "SELECT f.rh, f.nome, d.dia, d.estado, d.meio_dia
+           FROM rh_dias d
+           JOIN rh_funcionarios f ON f.id = d.funcionario_id
+          WHERE f.app_id = ? AND d.estado IN ($in)
+          ORDER BY f.nome, d.dia",
+        array_merge([$appId], RH_AUSENTE)
+    ) as $r) {
+        $k = (int)$r['rh'];
+        if (!isset($out[$k])) {
+            $out[$k] = ['nome' => $r['nome'], 'dias' => []];
+        }
+        $out[$k]['dias'][$r['dia']] = (int)$r['meio_dia'] === 1
+            ? $r['estado'] . '_meio'
+            : $r['estado'];
+    }
+    return $out;
+}
+
 /** Quem está ausente num dia, e porquê. */
 function rh_ausentes(int $appId, string $dia): array
 {
