@@ -216,7 +216,32 @@ function dados_colecoes(int $appId): array
     return $out;
 }
 
-/** Campos com coluna, numa coleção: os de origem mais os acrescentados. */
+/** As colunas que uma tabela tem mesmo, agora, na base de dados. */
+function dados_colunas_reais(string $tabela): array
+{
+    static $cache = [];
+    if (isset($cache[$tabela])) {
+        return $cache[$tabela];
+    }
+    $out = [];
+    foreach (q_all('SELECT column_name AS c FROM information_schema.columns
+                     WHERE table_schema = DATABASE() AND table_name = ?', [$tabela]) as $r) {
+        $out[$r['c']] = true;
+    }
+    return $cache[$tabela] = $out;
+}
+
+/**
+ * Campos com coluna, numa coleção: os de origem mais os acrescentados.
+ *
+ * Confere sempre com a tabela. Um campo que esteja no mapa mas cuja
+ * coluna não exista na base de dados é pior do que não estar: ao ler, a
+ * plataforma devolvia a linha sem esse campo, e a aplicação — que tem
+ * uma migração para dados antigos — via um campo em falta, punha-o a
+ * vazio e gravava o vazio por cima do que lá estava. Fora do mapa, o
+ * valor vai para "extras" e volta de lá inteiro, e o painel da estrutura
+ * mostra que falta a coluna.
+ */
 function dados_colunas(int $appId, string $colecao): array
 {
     static $cache = [];
@@ -228,6 +253,18 @@ function dados_colunas(int $appId, string $colecao): array
     foreach (q_all('SELECT campo, coluna FROM app_campos
                      WHERE app_id = ? AND colecao = ? AND coluna IS NOT NULL', [$appId, $colecao]) as $r) {
         $out[$r['campo']] = $r['coluna'];
+    }
+
+    $tabela = DADOS_TABELAS[$colecao]
+        ?? (string)q_val('SELECT tabela FROM app_colecoes WHERE app_id = ? AND colecao = ?',
+                         [$appId, $colecao]);
+    if ($tabela !== '') {
+        $reais = dados_colunas_reais($tabela);
+        foreach ($out as $campo => $coluna) {
+            if (!isset($reais[$coluna])) {
+                unset($out[$campo]);
+            }
+        }
     }
     return $cache[$ck] = $out;
 }
@@ -511,7 +548,8 @@ function dados_colecao_da_tabela(int $appId, string $tabela): string
 // ---------------------------------------------------------------------
 
 /** Converte uma linha da base de dados na forma que a aplicação espera. */
-function dados_linha_para_app(int $appId, array $linha, string $colecao): array
+function dados_linha_para_app(int $appId, array $linha, string $colecao,
+                              array $registados = []): array
 {
     $out = [];
     foreach (dados_colunas($appId, $colecao) as $campo => $coluna) {
@@ -537,6 +575,17 @@ function dados_linha_para_app(int $appId, array $linha, string $colecao): array
             $out[(string)$k] = $v;
         }
     }
+
+    // Um campo declarado que não tenha coluna nem valor em "extras" vai
+    // na mesma, vazio. Faltar a chave é pior do que ir vazia: a
+    // aplicação tem uma migração para dados antigos que, ao ver um campo
+    // em falta, põe a vazio o grupo inteiro a que ele pertence -- uma
+    // coluna perdida levava outras oito à frente.
+    foreach ($registados as $campo) {
+        if (!array_key_exists($campo, $out)) {
+            $out[$campo] = '';
+        }
+    }
     return $out;
 }
 
@@ -545,11 +594,18 @@ function dados_ler(int $appId): array
 {
     $out = [];
 
+    // Os campos que esta aplicação declara guardar, coluna ou não.
+    $declarados = [];
+    foreach (q_all('SELECT colecao, campo FROM app_campos WHERE app_id = ?', [$appId]) as $r) {
+        $declarados[$r['colecao']][] = $r['campo'];
+    }
+
     foreach (dados_colecoes($appId) as $colecao => $def) {
         $linhas = [];
         foreach (q_all('SELECT * FROM ' . $def['tabela'] . ' WHERE app_id = ? ORDER BY uid',
                        [$appId]) as $r) {
-            $linhas[(int)$r['id']] = dados_linha_para_app($appId, $r, $colecao);
+            $linhas[(int)$r['id']] = dados_linha_para_app($appId, $r, $colecao,
+                                                          $declarados[$colecao] ?? []);
         }
 
         if ($def['dias'] && $linhas) {

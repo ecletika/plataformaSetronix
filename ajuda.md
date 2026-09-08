@@ -462,13 +462,13 @@ O ficheiro é um **retrato do ano inteiro tirado num dia**, não um acrescento. 
 
 O ficheiro em si não fica guardado no servidor: o que fica são os dados que vêm lá dentro. O registo de quem importou o quê, e quando, fica no log de alterações.
 
-### O aviso de ausências no planeamento
+### Quem está fora não aparece para ser escolhido
 
-Com um mapa importado, a aplicação de planeamento passa a avisar quando se põe numa equipa alguém que, segundo o mapa, não vai estar cá.
+Com um mapa importado, as listas do planeamento semanal — supervisor, chefes de equipa e ajudantes — passam a mostrar **só quem vai estar cá nos dias assinalados**. Quem estiver de férias, de baixa ou em falta num desses dias não aparece na lista.
 
-O aviso aparece em dois sítios: **dentro da janela do planeamento semanal**, à medida que se escolhem as pessoas e os dias, e **outra vez ao guardar**, com a lista de quem falta e porquê.
+A lista muda com a semana e com os dias: se mudar a semana de referência, ou assinalar outro dia, as listas voltam a ser calculadas.
 
-**É um aviso, não uma barreira.** Dá para guardar na mesma, confirmando. O mapa é um retrato tirado num dia: uma baixa pode acabar mais cedo e umas férias podem ser desmarcadas, e quem está a planear sabe coisas que o mapa ainda não sabe.
+**Uma exceção.** Se a pessoa **já estava** neste planeamento, continua na lista, marcada com o motivo — *"Hugo Vieira — ferias"*. Tirá-la calada apagava uma escolha que alguém fez de propósito, e ninguém daria por isso. Ao guardar, aparece na mesma o aviso a dizer quem está fora e em que dias.
 
 ### Como as pessoas dos dois lados se ligam
 
