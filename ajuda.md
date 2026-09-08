@@ -207,7 +207,13 @@ Para uma aplicação já existente (clicada em "Gerir"):
    - Gaveta **Apagar todos os dados desta aplicação** — apaga as linhas de todas as coleções, escrevendo o nome da aplicação para confirmar. A estrutura fica de pé. Fica no log de alterações.
    - Explicado ao pormenor em [Aplicações que guardam dados](#aplicações-que-guardam-dados).
 
-6. **Apagar** — formulário destrutivo:
+6. **Mapa de atividade** — importa o ficheiro `.xlsx` que sai do sistema de recursos humanos:
+   - Mostra o mapa em uso: ficheiro, data do relatório, período coberto, e quanto entrou.
+   - **Dias por estado** — quantos dias de férias, de baixa, de falta, e quantas folhas estão fechadas. As linhas marcadas com **ausência** são os estados em que a pessoa não está disponível para trabalhar.
+   - **Quem está fora hoje** — a lista de quem está de férias, de baixa ou em falta no dia de hoje.
+   - Formulário de importação, com o botão **Importar**.
+
+7. **Apagar** — formulário destrutivo:
    - Texto: "Apaga a aplicação e todas as versões do servidor."
    - Campo de confirmação: **Escreva [nome da aplicação] para confirmar**.
    - Botão **Apagar definitivamente**. Após confirmação, a aplicação e todas as versões são removidas permanentemente.
@@ -434,6 +440,31 @@ A aplicação avisa no fundo do ecrã, a vermelho, que as últimas alterações 
 ### Abrir o ficheiro fora da plataforma
 
 Continua a funcionar. Fora da plataforma não há servidor, por isso a aplicação volta a guardar no `localStorage` do browser, como fazia antes. Os dados dos dois sítios são independentes: o que escrever com o ficheiro aberto à solto não aparece na plataforma, e vice-versa.
+
+## O mapa de atividade dos funcionários
+
+O sistema de recursos humanos exporta um ficheiro `.xlsx` com o ano inteiro: um funcionário por linha, um dia por coluna. É esse ficheiro que se importa em **Administração → Aplicações → (a aplicação) → Mapa de atividade**.
+
+### O que o ficheiro traz
+
+- **Quem são as pessoas** — nome e número de RH. É o número que conta: é único, não muda, e é o mesmo que o sistema de recursos humanos usa.
+- **Saldos de férias** — dias transitados do ano anterior, atribuídos no ano, marcados, por marcar e por gozar.
+- **O estado de cada dia** — férias (dia inteiro ou meio dia), baixa médica, licença de paternidade, de casamento ou de nojo, falta justificada ou injustificada, e o estado da folha de horas: enviada, aprovada, finalizada ou rejeitada.
+- **Os feriados** — no ficheiro estão apenas na cor de fundo das células; a importação torna-os explícitos.
+
+### O que o ficheiro não traz
+
+**Horas.** Nem uma. O mapa diz em que dias é que a pessoa esteve fora e em que ponto está a papelada; não diz quanto tempo trabalhou. Quem precisar de horas tem de as ir buscar a outro lado.
+
+### Cada importação substitui a anterior
+
+O ficheiro é um **retrato do ano inteiro tirado num dia**, não um acrescento. Guardar metade de um retrato e metade de outro dava um mapa que nunca existiu — por isso a importação apaga o que lá estava e põe o novo.
+
+O ficheiro em si não fica guardado no servidor: o que fica são os dados que vêm lá dentro. O registo de quem importou o quê, e quando, fica no log de alterações.
+
+### Se aparecer um símbolo desconhecido
+
+A importação não o deita fora nem estoura: guarda o dia como "símbolo não reconhecido" e mostra um aviso com o nome da pessoa, a data e o símbolo. Assim vê-se logo que o ficheiro mudou de formato.
 
 ## Perguntas frequentes
 

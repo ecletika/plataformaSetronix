@@ -351,3 +351,84 @@ CREATE TABLE IF NOT EXISTS app_definicoes (
   PRIMARY KEY (app_id, chave),
   CONSTRAINT fk_defs_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =====================================================================
+-- Mapa de atividade dos funcionarios
+-- =====================================================================
+-- Vem de um .xlsx exportado do sistema de recursos humanos: um retrato
+-- do ano, um funcionario por linha, um dia por coluna. Nao tem horas --
+-- so o estado de cada dia (folha finalizada, ferias, baixa, falta) e os
+-- saldos de ferias.
+--
+-- Cada importacao substitui a anterior: o ficheiro e um retrato inteiro
+-- e nao um acrescento. O historico de quem importou o que fica em
+-- rh_mapas.
+--
+-- Fica ligado a aplicacao (app_id) porque e por ela que o mapa entra,
+-- na ficha da aplicacao. Apagar a aplicacao leva o mapa com ela.
+
+CREATE TABLE IF NOT EXISTS rh_mapas (
+  id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  app_id         INT UNSIGNED NOT NULL,
+  ficheiro       VARCHAR(255) NOT NULL,
+  sha256         CHAR(64)     NOT NULL,
+  data_relatorio DATE         NULL,
+  periodo_ini    DATE         NULL,
+  periodo_fim    DATE         NULL,
+  funcionarios   SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  dias           INT UNSIGNED NOT NULL DEFAULT 0,
+  feriados       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  avisos         TEXT         NULL,
+  criado_em      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  criado_por     INT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  KEY idx_mapa_app (app_id, criado_em),
+  CONSTRAINT fk_mapas_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- O numero de RH e a chave: e unico, nao muda, e e o que o sistema de
+-- recursos humanos usa. O nome serve para as pessoas se reconhecerem.
+CREATE TABLE IF NOT EXISTS rh_funcionarios (
+  id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  app_id        INT UNSIGNED NOT NULL,
+  rh            INT UNSIGNED NOT NULL,
+  nome          VARCHAR(160) NOT NULL,
+  transitados   DECIMAL(5,1) NULL,
+  atribuidos    DECIMAL(5,1) NULL,
+  por_gozar     DECIMAL(5,1) NULL,
+  por_marcar    DECIMAL(5,1) NULL,
+  marcados      DECIMAL(5,1) NULL,
+  user_id       INT UNSIGNED NULL,
+  mapa_id       INT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_func (app_id, rh),
+  KEY idx_func_nome (app_id, nome),
+  CONSTRAINT fk_func_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE,
+  CONSTRAINT fk_func_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Um dia de um funcionario. So se guardam os dias com alguma marca: um
+-- dia sem nada nao e informacao, e seriam mais de trinta mil linhas
+-- vazias por ano.
+CREATE TABLE IF NOT EXISTS rh_dias (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  funcionario_id INT UNSIGNED NOT NULL,
+  dia            DATE NOT NULL,
+  estado         VARCHAR(24) NOT NULL,
+  meio_dia       TINYINT(1)  NOT NULL DEFAULT 0,
+  simbolo        VARCHAR(16) NOT NULL DEFAULT '',
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_dia (funcionario_id, dia),
+  KEY idx_dia_estado (dia, estado),
+  CONSTRAINT fk_dias_func FOREIGN KEY (funcionario_id) REFERENCES rh_funcionarios (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Feriados. No ficheiro estao na cor de fundo da celula e em mais lado
+-- nenhum; aqui ficam explicitos.
+CREATE TABLE IF NOT EXISTS rh_feriados (
+  app_id INT UNSIGNED NOT NULL,
+  dia    DATE NOT NULL,
+  PRIMARY KEY (app_id, dia),
+  CONSTRAINT fk_feriados_app FOREIGN KEY (app_id) REFERENCES apps (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

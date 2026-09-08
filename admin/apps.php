@@ -11,6 +11,7 @@ define('URL_PREFIX', '../');
 require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/apps.php';
 require_once __DIR__ . '/../lib/dados.php';
+require_once __DIR__ . '/../lib/rh.php';
 require_once __DIR__ . '/../lib/layout.php';
 
 $me = require_login('apps.manage');
@@ -125,6 +126,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   $r, null, (int)$me['id'], $me['username']);
             flash('warn', $total . ' linha(s) apagadas. A estrutura ficou de pé: as tabelas e as '
                 . 'colunas continuam lá, prontas a receber dados novos.');
+            redirect('apps.php?id=' . $id);
+        }
+
+        if ($action === 'rh_mapa') {
+            $f = $_FILES['mapa'] ?? [];
+            if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                throw new RuntimeException('Escolha um ficheiro .xlsx para enviar.');
+            }
+            if (strtolower((string)pathinfo((string)$f['name'], PATHINFO_EXTENSION)) !== 'xlsx') {
+                throw new RuntimeException('O mapa de atividade tem de ser um ficheiro .xlsx.');
+            }
+            // O ficheiro fica no sítio temporário e não é guardado: o que
+            // interessa é o que vai lá dentro, e isso passa para tabelas.
+            // O nome do ficheiro vem do computador de quem envia e pode
+            // não ser UTF-8 — um acento em Windows-1252 chega aqui como
+            // um byte solto e faz a gravação rebentar.
+            $nomeFicheiro = mb_substr(basename(to_utf8((string)$f['name'])), 0, 255);
+
+            $mapa = rh_interpretar((string)$f['tmp_name']);
+            $reg  = rh_gravar($id, $mapa, $nomeFicheiro,
+                              hash_file('sha256', (string)$f['tmp_name']), (int)$me['id']);
+
+            audit('update', 'app', $id, 'Mapa de atividade importado: '
+                . count($mapa['funcionarios']) . ' funcionários, ' . $mapa['dias'] . ' dias',
+                  null, ['ficheiro' => $nomeFicheiro, 'relatorio' => $mapa['data_relatorio']],
+                  (int)$me['id'], $me['username']);
+
+            flash('ok', 'Mapa importado: ' . count($mapa['funcionarios']) . ' funcionários, '
+                . $mapa['dias'] . ' dias marcados, ' . count($mapa['feriados']) . ' feriados. '
+                . 'Substituiu o mapa anterior.');
+            foreach (array_slice($mapa['avisos'], 0, 5) as $av) {
+                flash('warn', $av);
+            }
+            if (count($mapa['avisos']) > 5) {
+                flash('warn', 'E mais ' . (count($mapa['avisos']) - 5) . ' aviso(s). '
+                    . 'Estão guardados no registo desta importação.');
+            }
             redirect('apps.php?id=' . $id);
         }
 
@@ -534,6 +572,117 @@ layout_head('Aplicações', 'app', '../');
 </div>
 <?php endif; ?>
 
+
+
+<?php
+  // Mapa de atividade: quem está de férias, de baixa ou em falta, e os
+  // saldos de férias. Vem de um .xlsx do sistema de recursos humanos.
+  $rhMapa = rh_mapa_atual((int)$open['id']);
+?>
+<div class="card">
+  <h2>Mapa de atividade</h2>
+  <p class="muted">
+    O ficheiro que sai do sistema de recursos humanos, com o ano inteiro: um funcionário
+    por linha, um dia por coluna. Traz férias, baixas, faltas e os saldos de férias —
+    <b>não traz horas</b>.
+  </p>
+
+  <?php if ($rhMapa): ?>
+    <?php $avisos = json_decode((string)$rhMapa['avisos'], true) ?: []; ?>
+    <div class="ficha-grid" style="margin-top:14px">
+      <div class="dbox">
+        <p class="t">Mapa em uso</p>
+        <p class="mono" style="font-size:12px"><?= e($rhMapa['ficheiro']) ?></p>
+        <p>
+          Relatório de <b><?= e((string)$rhMapa['data_relatorio'] ?: '—') ?></b>,
+          a cobrir de <?= e((string)$rhMapa['periodo_ini']) ?>
+          a <?= e((string)$rhMapa['periodo_fim']) ?>.
+        </p>
+        <p class="muted" style="font-size:12px">
+          Importado em <?= e(substr((string)$rhMapa['criado_em'], 0, 16)) ?>
+        </p>
+      </div>
+      <div class="dbox">
+        <p class="t">O que entrou</p>
+        <p>
+          <b><?= (int)$rhMapa['funcionarios'] ?></b> funcionários ·
+          <b><?= (int)$rhMapa['dias'] ?></b> dias marcados ·
+          <b><?= (int)$rhMapa['feriados'] ?></b> feriados
+        </p>
+        <?php if ($avisos): ?>
+          <p class="muted" style="font-size:12px"><?= count($avisos) ?> aviso(s) na importação.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <?php $resumo = rh_resumo((int)$open['id']); if ($resumo): ?>
+      <h3 style="margin:20px 0 8px">Dias por estado</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Estado</th><th style="width:120px">Dias</th></tr></thead>
+          <tbody>
+          <?php foreach ($resumo as $r): ?>
+            <tr>
+              <td><?= e(RH_ESTADOS[$r['estado']] ?? $r['estado']) ?>
+                <?php if (in_array($r['estado'], RH_AUSENTE, true)): ?>
+                  <span class="tag off">ausência</span>
+                <?php endif; ?>
+              </td>
+              <td class="mono"><?= (int)$r['total'] ?><?php if ((int)$r['meios']): ?>
+                <span class="muted">(<?= (int)$r['meios'] ?> meios dias)</span><?php endif; ?></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+
+    <?php
+      $hoje = date('Y-m-d');
+      $fora = rh_ausentes((int)$open['id'], $hoje);
+    ?>
+    <h3 style="margin:20px 0 8px">Quem está fora hoje (<?= e($hoje) ?>)</h3>
+    <?php if ($fora): ?>
+      <div class="scroll">
+        <table>
+          <thead><tr><th style="width:90px">RH</th><th>Funcionário</th><th>Motivo</th></tr></thead>
+          <tbody>
+          <?php foreach ($fora as $p): ?>
+            <tr>
+              <td class="mono"><?= (int)$p['rh'] ?></td>
+              <td><?= e($p['nome']) ?></td>
+              <td class="muted"><?= e(RH_ESTADOS[$p['estado']] ?? $p['estado']) ?><?php
+                  if ((int)$p['meio_dia']): ?> (meio dia)<?php endif; ?></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <p class="muted">Ninguém está marcado como ausente neste dia.</p>
+    <?php endif; ?>
+  <?php else: ?>
+    <div class="alert warn" style="margin-top:14px">
+      Ainda não foi importado nenhum mapa para esta aplicação.
+    </div>
+  <?php endif; ?>
+
+  <h3 style="margin:22px 0 8px"><?= $rhMapa ? 'Substituir o mapa' : 'Importar o mapa' ?></h3>
+  <p class="nota" style="margin:0 0 10px">
+    O ficheiro é um retrato do ano inteiro, não um acrescento: <b>cada importação substitui
+    a anterior por completo</b>. O ficheiro em si não fica guardado — o que fica são os
+    dados que vêm lá dentro.
+  </p>
+  <form method="post" enctype="multipart/form-data" class="actions" style="align-items:flex-end">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="rh_mapa">
+    <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
+    <label style="flex:1;min-width:240px;max-width:420px;margin:0">Ficheiro .xlsx
+      <input type="file" name="mapa" accept=".xlsx" required>
+    </label>
+    <button class="primary" type="submit">Importar</button>
+  </form>
+</div>
 
 <div class="card">
   <h2>Nova aplicação</h2>

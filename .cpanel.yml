@@ -37,7 +37,10 @@ deployment:
     #    no servidor e a dar erro 500, por já não terem tabelas na BD.
     - /bin/rm -rf $DEPLOYPATH/legacy
     - /bin/rm -f $DEPLOYPATH/admin/lists.php $DEPLOYPATH/admin/import.php $DEPLOYPATH/admin/backup.php
-    - /bin/rm -f $DEPLOYPATH/lib/lists.php $DEPLOYPATH/lib/backup.php $DEPLOYPATH/lib/xlsx.php
+    #    O lib/xlsx.php saiu desta lista: voltou a existir, agora como
+    #    leitor do mapa de atividade. Apagá-lo depois de o copiar deixava
+    #    a importação a dar erro no servidor e a funcionar em casa.
+    - /bin/rm -f $DEPLOYPATH/lib/lists.php $DEPLOYPATH/lib/backup.php
 
     # 5. Depois da instalação estar concluída, o assistente deixa de ser
     #    publicado — para não voltar a aparecer a cada deploy.
