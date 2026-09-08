@@ -468,7 +468,9 @@ Com um mapa importado, as listas do planeamento semanal — supervisor, chefes d
 
 A lista muda com a semana e com os dias: se mudar a semana de referência, ou assinalar outro dia, as listas voltam a ser calculadas.
 
-**Uma exceção.** Se a pessoa **já estava** neste planeamento, continua na lista, marcada com o motivo — *"Hugo Vieira — ferias"*. Tirá-la calada apagava uma escolha que alguém fez de propósito, e ninguém daria por isso. Ao guardar, aparece na mesma o aviso a dizer quem está fora e em que dias.
+**Não há exceções.** Se um planeamento antigo tinha alguém que entretanto ficou de férias ou de baixa, ao abrir esse planeamento o campo aparece **vazio**: a pessoa saiu da lista e o lugar ficou por preencher. Como o supervisor é obrigatório, guardar sem escolher outro dá erro — é aí que se dá pela alteração.
+
+O que estava gravado só muda quando voltar a guardar o planeamento. Depois de importar um mapa novo, vale a pena rever os planeamentos das semanas seguintes.
 
 ### Como as pessoas dos dois lados se ligam
 
