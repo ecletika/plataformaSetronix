@@ -444,10 +444,21 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
       </span>
     <?php endif;
 
-    // Atalho para ver quem está fora, sem sair de onde se está. Só a quem
-    // gere aplicações e tem acesso a uma que tenha mapa importado: aos
-    // outros seria um botão para uma sala onde não entram.
-    $appRh = can('apps.manage') && $u ? rh_app_do_utilizador((int)$u['id']) : null;
+    // Atalho para ver quem está fora, sem sair de onde se está.
+    //
+    // Só aparece com a aplicação do mapa aberta. É um apoio a quem está a
+    // planear aquela aplicação: noutra aplicação, ou no ecrã inicial, era
+    // um botão sem relação com o que se está a fazer.
+    //
+    // E só a quem gere aplicações e tem acesso àquela — para os outros
+    // seria uma porta para uma sala onde não entram.
+    $appRh = null;
+    if ($script === 'app.php' && can('apps.manage') && $u) {
+        $candidata = rh_app_do_utilizador((int)$u['id']);
+        if ($candidata && (int)$candidata['id'] === (int)($_GET['id'] ?? 0)) {
+            $appRh = $candidata;
+        }
+    }
     if ($appRh):
     ?>
       <a class="atalho-ausencias" href="<?= e($base) ?>ausencias.php"
