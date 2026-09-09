@@ -83,19 +83,21 @@ if (isset($_GET['transferir'])) {
 // Aplicações que declaram campos recebem os dados já dentro da página.
 // As outras seguem tal e qual foram enviadas — continuam a guardar no
 // browser, como sempre fizeram.
-if (dados_manifesto($html) !== null) {
+$manifesto = dados_manifesto($html);
+if ($manifesto !== null) {
+    // Quem hoje não pode trabalhar sai das listas da aplicação antes de
+    // a página seguir. Não é escondido no browser: os nomes não chegam a
+    // ser enviados, e por isso não há como escolhê-los. Como é refeito a
+    // cada abertura, à meia-noite muda sozinho.
+    if (rh_mapa_atual((int)$app['id'])) {
+        rh_limpar_html((int)$app['id'], $html, $manifesto);
+    }
+
     $boot = [
         'app'   => (int)$app['id'],
         'csrf'  => csrf_token(),
         'dados' => dados_ler((int)$app['id']),
     ];
-
-    // Quem está fora, e em que dias. Vai junto com os dados para a
-    // aplicação poder avisar antes de alguém ser posto numa equipa em
-    // dias em que não vai estar cá. Só existe se houver mapa importado.
-    if (rh_mapa_atual((int)$app['id'])) {
-        $boot['rh'] = rh_ausencias((int)$app['id']);
-    }
     // json_encode escapa os acentos para \uXXXX: fica ASCII puro e entra
     // em qualquer página, seja qual for a codificação que ela declare.
     $script = '<script>window.SETRONIX_BOOT=' . json_encode($boot) . ';</script>';

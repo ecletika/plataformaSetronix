@@ -462,15 +462,17 @@ O ficheiro é um **retrato do ano inteiro tirado num dia**, não um acrescento. 
 
 O ficheiro em si não fica guardado no servidor: o que fica são os dados que vêm lá dentro. O registo de quem importou o quê, e quando, fica no log de alterações.
 
-### Quem está fora não aparece para ser escolhido
+### Quem está fora não chega a aparecer
 
-Com um mapa importado, as listas do planeamento semanal — supervisor, chefes de equipa e ajudantes — passam a mostrar **só quem vai estar cá nos dias assinalados**. Quem estiver de férias, de baixa ou em falta num desses dias não aparece na lista.
+Com um mapa importado, quem hoje está de férias, de baixa ou em falta é **retirado das listas antes de a página sair do servidor**. Os nomes não são escondidos no browser: não chegam a ser enviados. Quem abrir a aplicação e olhar para o código da página também não os encontra.
 
-A lista muda com a semana e com os dias: se mudar a semana de referência, ou assinalar outro dia, as listas voltam a ser calculadas.
+Isto é refeito **de cada vez que a aplicação abre**, com o dia de hoje. À meia-noite muda sozinho, sem depender de nenhuma tarefa agendada que possa falhar em silêncio.
 
-**Não há exceções.** Se um planeamento antigo tinha alguém que entretanto ficou de férias ou de baixa, ao abrir esse planeamento o campo aparece **vazio**: a pessoa saiu da lista e o lugar ficou por preencher. Como o supervisor é obrigatório, guardar sem escolher outro dá erro — é aí que se dá pela alteração.
+O dia de referência é **hoje**, não a semana que se está a planear. Quem estiver de férias hoje não aparece, mesmo que se esteja a planear um mês à frente; e quem vai de férias para a semana aparece hoje na lista.
 
-O que estava gravado só muda quando voltar a guardar o planeamento. Depois de importar um mapa novo, vale a pena rever os planeamentos das semanas seguintes.
+**O que já está gravado nunca é tocado.** Se um planeamento tem alguém que entretanto ficou de férias, ao abrir esse planeamento o nome continua lá, no campo dele — só naquele campo, não na lista. É a única forma de não apagar, sem ninguém dar por isso, uma decisão que alguém tomou.
+
+Num planeamento **novo** não há reposição nenhuma: o supervisor deixa de vir pré-preenchido se essa pessoa estiver fora, e o campo fica vazio à espera de outra escolha.
 
 ### Como as pessoas dos dois lados se ligam
 
@@ -479,6 +481,14 @@ O mapa conhece as pessoas pelo nome completo — *Hugo Emanuel Matos Vieira* —
 Quando o nome curto dá em **duas pessoas diferentes**, ou em nenhuma, **não há aviso**. É de propósito: um aviso a menos é um incómodo, um aviso a mais sobre a pessoa errada desfaz uma equipa sem razão.
 
 Nas listas atuais, dos 58 nomes da aplicação ligam-se 50; os outros 8 são as entradas *Tempo de secagem*, que não são pessoas.
+
+Para que isto funcione, a aplicação declara no bloco `setronix-dados` em que variável tem as suas listas e quais delas são de pessoas:
+
+```json
+"pessoas": { "variavel": "LISTS", "listas": ["managers", "supervisors", "setLeaders", "setHelpers"] }
+```
+
+Sem essa declaração, a plataforma não mexe em nada — não vai adivinhar onde estão os nomes.
 
 ### Se aparecer um símbolo desconhecido
 

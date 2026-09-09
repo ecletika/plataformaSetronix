@@ -333,35 +333,180 @@ function rh_resumo(int $appId): array
 }
 
 /**
- * As ausências de toda a gente, para a aplicação as poder consultar.
+ * Palavras de um nome, sem acentos e sem as de ligação.
  *
- * Vai num formato apertado — nome, número de RH, e um mapa de dia para
- * estado — porque isto viaja dentro da página em cada abertura.
- *
- * Só ausências: os dias de folha finalizada ou por aprovar não dizem
- * nada sobre a pessoa estar ou não disponível, e seriam oito mil linhas.
+ * "Hugo Emanuel Matos Vieira" fica ["hugo","emanuel","matos","vieira"].
  */
-function rh_ausencias(int $appId): array
+function rh_palavras(string $nome): array
 {
-    $in = implode(',', array_fill(0, count(RH_AUSENTE), '?'));
+    $n = @iconv('UTF-8', 'ASCII//TRANSLIT', $nome);
+    $n = strtolower((string)$n);
+    $p = preg_split('/[^a-z]+/', $n) ?: [];
+    return array_values(array_diff(array_filter($p), ['de', 'da', 'do', 'dos', 'das', 'e']));
+}
+
+/**
+ * Quais destes nomes são de gente que hoje não pode trabalhar.
+ *
+ * O mapa conhece as pessoas pelo nome completo — "Hugo Emanuel Matos
+ * Vieira" — e a aplicação pelo nome curto — "Hugo Vieira". Ligam-se por
+ * palavras: se todas as palavras do nome curto estiverem no nome
+ * completo, é a mesma pessoa.
+ *
+ * Nome curto que dê em duas pessoas, ou em nenhuma, fica de fora. Um
+ * nome a menos na lista é um incómodo; tirar a pessoa errada é uma
+ * equipa desfeita sem razão.
+ *
+ * @return array Os nomes a tirar, com o motivo: ['Hugo Vieira' => 'ferias']
+ */
+function rh_indisponiveis(int $appId, string $dia, array $nomes): array
+{
+    $ausentes = [];
+    foreach (rh_ausentes($appId, $dia) as $r) {
+        $ausentes[] = ['palavras' => rh_palavras((string)$r['nome']), 'estado' => $r['estado']];
+    }
+    if (!$ausentes) {
+        return [];
+    }
+
     $out = [];
-    foreach (q_all(
-        "SELECT f.rh, f.nome, d.dia, d.estado, d.meio_dia
-           FROM rh_dias d
-           JOIN rh_funcionarios f ON f.id = d.funcionario_id
-          WHERE f.app_id = ? AND d.estado IN ($in)
-          ORDER BY f.nome, d.dia",
-        array_merge([$appId], RH_AUSENTE)
-    ) as $r) {
-        $k = (int)$r['rh'];
-        if (!isset($out[$k])) {
-            $out[$k] = ['nome' => $r['nome'], 'dias' => []];
+    foreach ($nomes as $nome) {
+        $curto = rh_palavras((string)$nome);
+        if (!$curto) {
+            continue;
         }
-        $out[$k]['dias'][$r['dia']] = (int)$r['meio_dia'] === 1
-            ? $r['estado'] . '_meio'
-            : $r['estado'];
+        $achado = null;
+        foreach ($ausentes as $a) {
+            if (!array_diff($curto, $a['palavras'])) {
+                if ($achado !== null) {
+                    $achado = null;   // dois candidatos: não se arrisca
+                    break;
+                }
+                $achado = $a['estado'];
+            }
+        }
+        if ($achado !== null) {
+            $out[(string)$nome] = $achado;
+        }
     }
     return $out;
+}
+
+/**
+ * Tira do HTML as pessoas que hoje não podem trabalhar.
+ *
+ * A aplicação declara, no bloco "setronix-dados", em que variável tem as
+ * suas listas e quais delas são de pessoas. Aqui essa variável é lida,
+ * as listas declaradas são limpas, e o HTML segue já sem esses nomes:
+ * não chegam ao browser, e por isso não há como escolhê-los.
+ *
+ * Muda sozinho à meia-noite, porque é refeito de cada vez que a página
+ * abre e o dia de referência é o de hoje.
+ *
+ * O que já está gravado não é tocado. Um planeamento antigo com alguém
+ * que entretanto ficou de férias continua com essa pessoa: tirá-la seria
+ * apagar uma decisão que alguém tomou.
+ *
+ * @return array Os nomes tirados, com o motivo.
+ */
+function rh_limpar_html(int $appId, string &$html, array $manifesto, ?string $dia = null): array
+{
+    $def = $manifesto['pessoas'] ?? null;
+    if (!is_array($def)) {
+        return [];
+    }
+    $variavel = (string)($def['variavel'] ?? '');
+    $listas   = isset($def['listas']) && is_array($def['listas']) ? $def['listas'] : [];
+    if (!preg_match('/^[A-Za-z_$][A-Za-z0-9_$]{0,40}$/', $variavel) || !$listas) {
+        return [];
+    }
+
+    $bloco = rh_achar_objecto($html, $variavel);
+    if ($bloco === null) {
+        return [];
+    }
+    [$ini, $fim] = $bloco;
+    $dados = json_decode(substr($html, $ini, $fim - $ini), true);
+    if (!is_array($dados)) {
+        return [];
+    }
+
+    // Todos os nomes que aparecem nas listas de pessoas.
+    $nomes = [];
+    foreach ($listas as $lista) {
+        foreach ((array)($dados[$lista] ?? []) as $n) {
+            if (is_string($n)) {
+                $nomes[$n] = true;
+            }
+        }
+    }
+    if (!$nomes) {
+        return [];
+    }
+
+    $fora = rh_indisponiveis($appId, $dia ?? date('Y-m-d'), array_keys($nomes));
+    if (!$fora) {
+        return [];
+    }
+
+    foreach ($listas as $lista) {
+        if (!isset($dados[$lista]) || !is_array($dados[$lista])) {
+            continue;
+        }
+        $dados[$lista] = array_values(array_filter(
+            $dados[$lista],
+            static fn($n) => !is_string($n) || !isset($fora[$n])
+        ));
+    }
+
+    $novo = json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $html = substr($html, 0, $ini) . $novo . substr($html, $fim);
+    return $fora;
+}
+
+/**
+ * Onde começa e acaba o objecto de uma variável no HTML.
+ *
+ * Conta chavetas, saltando as que estão dentro de texto. É preciso
+ * porque as listas têm nomes com aspas e acentos, e um corte a olho
+ * partia o JSON ao meio.
+ *
+ * @return array|null [inicio, fim] ou null se não encontrar.
+ */
+function rh_achar_objecto(string $html, string $variavel): ?array
+{
+    if (!preg_match('/\b' . preg_quote($variavel, '/') . '\s*=\s*\{/', $html, $m, PREG_OFFSET_CAPTURE)) {
+        return null;
+    }
+    $ini   = (int)$m[0][1] + strlen($m[0][0]) - 1;
+    $nivel = 0;
+    $texto = false;
+    $fuga  = false;
+
+    for ($i = $ini, $n = strlen($html); $i < $n; $i++) {
+        $c = $html[$i];
+        if ($texto) {
+            if ($fuga) {
+                $fuga = false;
+            } elseif ($c === '\\') {
+                $fuga = true;
+            } elseif ($c === '"') {
+                $texto = false;
+            }
+            continue;
+        }
+        if ($c === '"') {
+            $texto = true;
+        } elseif ($c === '{') {
+            $nivel++;
+        } elseif ($c === '}') {
+            $nivel--;
+            if ($nivel === 0) {
+                return [$ini, $i + 1];
+            }
+        }
+    }
+    return null;
 }
 
 /** Quem está ausente num dia, e porquê. */
