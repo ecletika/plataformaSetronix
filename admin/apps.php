@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit('update', 'app', $id, 'Nova versão (' . (int)$v['version'] . ') de ' . $app['name']);
             flash('ok', 'Versão ' . (int)$v['version'] . ' publicada. Os utilizadores passam a ver esta.');
             avisar_campos($campos, $id, (string)$app['name']);
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=versoes');
         }
 
         if ($action === 'estrutura') {
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$r['feitos'] && !$r['falhados']) {
                 flash('ok', 'Não havia nada por aplicar.');
             }
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=estrutura');
         }
 
         if ($action === 'apagar_dados') {
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   $r, null, (int)$me['id'], $me['username']);
             flash('warn', $total . ' linha(s) apagadas. A estrutura ficou de pé: as tabelas e as '
                 . 'colunas continuam lá, prontas a receber dados novos.');
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=estrutura');
         }
 
         if ($action === 'rh_mapa') {
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('warn', 'E mais ' . (count($mapa['avisos']) - 5) . ' aviso(s). '
                     . 'Estão guardados no registo desta importação.');
             }
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=mapa');
         }
 
         if ($action === 'edit') {
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit('update', 'app', $id, 'Aplicação atualizada: ' . $name, $app,
                   ['name' => $name, 'description' => $desc, 'is_active' => $active]);
             flash('ok', 'Aplicação atualizada.');
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=dados');
         }
 
         if ($action === 'access') {
@@ -210,21 +210,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('ok', $n === 0
                 ? 'A aplicação passa a estar visível para todos os utilizadores.'
                 : 'Acesso reservado a ' . $n . ' utilizador(es).');
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=acessos');
         }
 
         if ($action === 'rollback') {
             $v = app_rollback($id, (int)($_POST['version_id'] ?? 0));
             audit('update', 'app', $id, 'Reposta a versão ' . (int)$v['version'] . ' de ' . $app['name']);
             flash('ok', 'A versão ' . (int)$v['version'] . ' voltou a ser a versão ativa.');
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=versoes');
         }
 
         if ($action === 'delete_version') {
             $v = app_version_delete($id, (int)($_POST['version_id'] ?? 0));
             audit('delete', 'app', $id, 'Apagada a versão ' . (int)$v['version'] . ' de ' . $app['name']);
             flash('ok', 'Versão ' . (int)$v['version'] . ' apagada.');
-            redirect('apps.php?id=' . $id);
+            redirect('apps.php?id=' . $id . '&sec=versoes');
         }
 
         if ($action === 'delete') {
@@ -316,11 +316,70 @@ layout_head('Aplicações', 'app', '../');
         'description' => $failed === 'edit' ? (string)($_POST['description'] ?? '') : (string)$open['description'],
         'is_active'   => $failed === 'edit' ? isset($_POST['is_active']) : (int)$open['is_active'] === 1,
     ];
-?>
-<div class="card">
-  <h2><?= e($open['name']) ?></h2>
-  <p class="muted">Endereço: <code>app.php?id=<?= (int)$open['id'] ?></code></p>
 
+    // Tudo o que a ficha mostra é calculado aqui em cima, porque o índice
+    // precisa dos números antes de se saber que secção vai ser desenhada.
+    $manifesto = dados_manifesto_da_app($open);
+    $dif = $regs = $colecoes = $contagem = null;
+    if ($manifesto) {
+        $dif      = dados_diferencas((int)$open['id'], $manifesto);
+        $regs     = dados_campos_registados((int)$open['id']);
+        $colecoes = dados_colecoes((int)$open['id']);
+        $contagem = dados_contagens((int)$open['id']);
+    }
+    $rhMapa   = rh_mapa_atual((int)$open['id']);
+    $nAcessos = (int)q_val('SELECT COUNT(*) FROM user_apps WHERE app_id = ?', [(int)$open['id']]);
+    $nCampos  = 0;
+    foreach ((array)$regs as $lista) {
+        $nCampos += count($lista);
+    }
+
+    // As secções da ficha. Cada uma é um endereço: sem JavaScript, a
+    // página volta para a mesma secção depois de guardar, e um separador
+    // aberto de propósito continua a ser um endereço que se guarda.
+    $seccoes = [
+        'versoes'   => ['Versões', count($versions), false],
+        'acessos'   => ['Quem pode abrir', $nAcessos ?: null, false],
+        'dados'     => ['Nome e visibilidade', null, false],
+    ];
+    if ($manifesto) {
+        $seccoes['estrutura'] = ['Estrutura de dados', $nCampos, (bool)$dif['sql']];
+    }
+    $seccoes['mapa'] = ['Mapa de atividade',
+                        $rhMapa ? (int)$rhMapa['funcionarios'] : null,
+                        !$rhMapa];
+
+    $sec = (string)($_GET['sec'] ?? '');
+    if (!isset($seccoes[$sec])) {
+        $sec = 'versoes';
+    }
+    $liga = static function (string $k) use ($open): string {
+        return 'apps.php?id=' . (int)$open['id'] . '&sec=' . $k;
+    };
+?>
+<div class="card ficha-app">
+  <div class="ficha-cab">
+    <h2><?= e($open['name']) ?></h2>
+    <p class="muted">Endereço: <code>app.php?id=<?= (int)$open['id'] ?></code></p>
+  </div>
+
+  <div class="ficha-corpo">
+    <nav class="ficha-indice" aria-label="Secções da aplicação">
+      <?php foreach ($seccoes as $k => [$rotulo, $conta, $alerta]): ?>
+        <a href="<?= e($liga($k)) ?>"<?= $sec === $k ? ' aria-current="page"' : '' ?>>
+          <span><?= e($rotulo) ?></span>
+          <?php if ($alerta): ?>
+            <span class="pinta" title="Há coisas por fazer aqui"></span>
+          <?php elseif ($conta !== null): ?>
+            <span class="conta"><?= (int)$conta ?></span>
+          <?php endif; ?>
+        </a>
+      <?php endforeach; ?>
+    </nav>
+
+    <div class="ficha-painel">
+
+<?php if ($sec === 'versoes'): ?>
   <h3>Enviar nova versão</h3>
   <form method="post" enctype="multipart/form-data">
     <?= csrf_field() ?>
@@ -379,6 +438,9 @@ layout_head('Aplicações', 'app', '../');
     </table>
   </div>
 
+<?php endif; ?>
+
+<?php if ($sec === 'acessos'): ?>
   <h3>Quem pode abrir</h3>
   <?php
     $comAcesso = $failed === 'access'
@@ -428,6 +490,9 @@ layout_head('Aplicações', 'app', '../');
     </div>
   </form>
 
+<?php endif; ?>
+
+<?php if ($sec === 'dados'): ?>
   <h3>Dados da aplicação</h3>
   <form method="post">
     <?= csrf_field() ?>
@@ -460,21 +525,10 @@ layout_head('Aplicações', 'app', '../');
       <input type="text" name="confirm" autocomplete="off"></label>
     <button class="danger" type="submit">Apagar definitivamente</button>
   </form>
-</div>
 <?php endif; ?>
 
-<?php
-  // Só aparece nas aplicações que declaram o que guardam. As outras
-  // continuam a guardar no browser e não têm estrutura para mostrar.
-  $manifesto = dados_manifesto_da_app($open);
-  if ($manifesto):
-      $dif      = dados_diferencas((int)$open['id'], $manifesto);
-      $regs     = dados_campos_registados((int)$open['id']);
-      $colecoes = dados_colecoes((int)$open['id']);
-      $contagem = dados_contagens((int)$open['id']);
-?>
-<div class="card">
-  <h2>Estrutura de dados</h2>
+<?php if ($sec === 'estrutura' && $manifesto): ?>
+  <h3>Estrutura de dados</h3>
   <p class="muted">
     O que esta aplicação declara guardar, e o que existe na base de dados para o receber.
   </p>
@@ -573,18 +627,10 @@ layout_head('Aplicações', 'app', '../');
     ChatGPT, peça que mantenha o bloco <code>setronix-dados</code> e que lhe acrescente
     os campos novos — é por aí que a plataforma sabe que existem.
   </p>
-</div>
 <?php endif; ?>
 
-
-
-<?php
-  // Mapa de atividade: quem está de férias, de baixa ou em falta, e os
-  // saldos de férias. Vem de um .xlsx do sistema de recursos humanos.
-  $rhMapa = rh_mapa_atual((int)$open['id']);
-?>
-<div class="card">
-  <h2>Mapa de atividade</h2>
+<?php if ($sec === 'mapa'): ?>
+  <h3>Mapa de atividade</h3>
   <p class="muted">
     O ficheiro que sai do sistema de recursos humanos, com o ano inteiro: um funcionário
     por linha, um dia por coluna. Traz férias, baixas, faltas e os saldos de férias —
@@ -743,7 +789,12 @@ layout_head('Aplicações', 'app', '../');
     </label>
     <button class="primary" type="submit">Importar</button>
   </form>
+<?php endif; ?>
+
+    </div>
+  </div>
 </div>
+<?php endif; ?>
 
 <div class="card">
   <h2>Nova aplicação</h2>

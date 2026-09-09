@@ -165,16 +165,22 @@ Coluna por coluna:
 - **Estado** — etiqueta verde "ativa" ou cinzenta "oculta" (consoante o campo "Visível para os utilizadores"). Se tem utilizadores atribuídos, aparece uma segunda etiqueta com o número (ex.: "3 utilizadores"). Se está aberta a todos, aparece etiqueta "todos".
 - **Botões:** "Abrir" (abre a aplicação num novo separador do browser) e "Gerir" (carrega os formulários de detalhes desta aplicação).
 
-**Carregamento de ficheiros:**
+**A ficha de uma aplicação (botão "Gerir"):**
 
-Para uma aplicação já existente (clicada em "Gerir"):
+A ficha abre com um **índice à esquerda** e o conteúdo à direita. Cada entrada do índice traz o número do que tem lá dentro — 19 versões, 32 campos, 68 funcionários — e um **ponto laranja** quando há trabalho por fazer nessa secção, como colunas por criar na base de dados.
 
-1. **Enviar nova versão** — formulário com:
+Só é desenhada a secção escolhida. É por isso que a página deixou de ser uma coluna de sete blocos e passou a caber num ecrã.
+
+Cada secção tem endereço próprio (`apps.php?id=1&sec=mapa`), por isso dá para guardar nos favoritos, e depois de guardar alguma coisa a página volta à secção onde estava.
+
+As secções são:
+
+1. **Versões** — enviar uma versão nova e a tabela de todas as versões:
    - Campo obrigatório: **Ficheiro HTML** (aceita .html ou .htm). Máximo 8 MB (configurável em config.php).
    - Campo opcional: **Nota** (máximo 255 caracteres, ex.: "corrige bug da listagem").
    - Botão **Publicar esta versão**. A versão anterior fica guardada e pode ser reposta.
 
-2. **Versões** — tabela com todas as versões da aplicação:
+   E a tabela de todas as versões:
    - **#** — número de versão. A versão ativa tem etiqueta "ativa".
    - **Ficheiro** — nome do ficheiro original enviado.
    - **Tamanho** — tamanho em bytes.
@@ -187,33 +193,33 @@ Para uma aplicação já existente (clicada em "Gerir"):
      - "Repor" (apenas se não é a versão ativa) — marca esta versão como ativa. Todos os utilizadores passam a ver esta.
      - "Apagar" (apenas se não é a versão ativa) — remove a versão do servidor. Aparece uma confirmação.
 
-3. **Quem pode abrir** — lista de transferência (duas colunas):
+2. **Quem pode abrir** — lista de transferência (duas colunas):
    - **Coluna esquerda:** utilizadores que não têm acesso.
    - **Coluna direita:** utilizadores que podem abrir esta aplicação.
    - Com a coluna direita vazia, a aplicação está aberta a **todos** os utilizadores.
    - As aplicações que estão abertas a todos (porque ninguém lhes foi atribuído) aparecem fixas na coluna direita com a nota "aberta a todos" — não se retiram ali. Para as reservar, é preciso atribuir pessoas.
    - Botão **Guardar acesso**.
 
-4. **Dados da aplicação** — formulário de edição:
+3. **Nome e visibilidade** — formulário de edição:
    - **Nome** (obrigatório, máximo 160 caracteres).
    - **Descrição** (opcional, máximo 500 caracteres).
    - Caixa de seleção: **Visível para os utilizadores** — quando marcada, a aplicação aparece no ecrã inicial. Quando desmarcada, fica oculta mas não é apagada.
    - Botão **Guardar**.
 
-5. **Estrutura de dados** — só aparece nas aplicações que declaram o que guardam:
+4. **Estrutura de dados** — só aparece nas aplicações que declaram o que guardam:
    - Diz se falta alguma coisa na base de dados e, se faltar, mostra **o SQL que a resolve** — tal e qual vai correr.
    - Botão **Aplicar à base de dados** — cria as tabelas e acrescenta as colunas em falta. Nada corre sem alguém carregar aqui.
    - Tabela por coleção, campo a campo: qual o tipo, e se tem coluna própria ou se está guardado em `extras`. O título de cada coleção diz **quantas linhas estão gravadas** — é a forma rápida de confirmar que a aplicação está mesmo a gravar.
    - Gaveta **Apagar todos os dados desta aplicação** — apaga as linhas de todas as coleções, escrevendo o nome da aplicação para confirmar. A estrutura fica de pé. Fica no log de alterações.
    - Explicado ao pormenor em [Aplicações que guardam dados](#aplicações-que-guardam-dados).
 
-6. **Mapa de atividade** — importa o ficheiro `.xlsx` que sai do sistema de recursos humanos:
+5. **Mapa de atividade** — importa o ficheiro `.xlsx` que sai do sistema de recursos humanos:
    - Mostra o mapa em uso: ficheiro, data do relatório, período coberto, e quanto entrou.
    - **Dias por estado** — quantos dias de férias, de baixa, de falta, e quantas folhas estão fechadas. As linhas marcadas com **ausência** são os estados em que a pessoa não está disponível para trabalhar.
    - **Quem está fora, semana a semana** — escolhe-se uma data e vê-se a semana dela: quem falta, em que dias, e se sobra algum dia livre. A coluna **Nas listas** diz se a pessoa continua disponível para o planeamento dessa semana ou se desaparece das listas.
    - Formulário de importação, com o botão **Importar**.
 
-7. **Apagar** — formulário destrutivo:
+6. **Apagar** — dentro de *Nome e visibilidade*, um formulário destrutivo:
    - Texto: "Apaga a aplicação e todas as versões do servidor."
    - Campo de confirmação: **Escreva [nome da aplicação] para confirmar**.
    - Botão **Apagar definitivamente**. Após confirmação, a aplicação e todas as versões são removidas permanentemente.

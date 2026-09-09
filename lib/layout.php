@@ -264,6 +264,43 @@ header.topbar a.brand img{height:28px;width:auto;display:block;filter:var(--logo
 .authlogo img{height:58px;width:auto;max-width:100%;display:block}
 .authname{text-align:center;font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}
 .authsub{text-align:center;color:var(--muted);font-size:13px;margin:0 0 18px}
+/* Ficha de uma aplicação: índice à esquerda, conteúdo à direita.
+
+   Antes eram sete blocos empilhados e era preciso descer a página toda
+   para chegar ao último. Agora só se desenha a secção escolhida, o que
+   também deixa a página muito mais leve. */
+.ficha-app{padding:0;overflow:hidden}
+.ficha-cab{padding:18px 22px 14px;border-bottom:1px solid var(--line)}
+.ficha-cab h2{margin:0}
+.ficha-cab p{margin:4px 0 0}
+.ficha-corpo{display:grid;grid-template-columns:216px 1fr;align-items:stretch}
+.ficha-indice{
+  border-right:1px solid var(--line);background:var(--surface);
+  padding:10px;display:flex;flex-direction:column;gap:2px}
+.ficha-indice a{
+  display:flex;align-items:center;gap:9px;text-decoration:none;font-size:13px;
+  color:var(--ink-2);padding:9px 11px;border-radius:8px;transition:background .13s,color .13s}
+.ficha-indice a:hover{background:var(--panel)}
+.ficha-indice a[aria-current="page"]{
+  background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.ficha-indice a span:first-child{flex:1}
+.ficha-indice .conta{
+  font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 6px}
+.ficha-indice a[aria-current="page"] .conta{border-color:var(--accent-line);color:var(--accent-ink)}
+.ficha-indice .pinta{width:7px;height:7px;border-radius:999px;background:var(--rail);flex:none}
+.ficha-painel{padding:18px 22px 24px;min-width:0}
+.ficha-painel > h3:first-child{margin-top:0}
+/* Com o painel mais estreito, os botões de cada versão partiam um por
+   linha. Ficam em linha e a tabela rola, que é o que já fazia. */
+.ficha-painel td.actions{flex-wrap:nowrap;white-space:nowrap}
+@media (max-width:760px){
+  .ficha-corpo{grid-template-columns:1fr}
+  .ficha-indice{border-right:0;border-bottom:1px solid var(--line);
+    flex-direction:row;flex-wrap:wrap;gap:4px}
+  .ficha-indice a{flex:0 0 auto}
+  .ficha-indice a span:first-child{flex:0 0 auto}
+}
 /* SQL por aplicar: mostra-se tal e qual vai correr. */
 pre.sql{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:12px/1.6 ui-monospace,Consolas,monospace;color:var(--ink-2);margin:0 0 14px;white-space:pre}
 footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
