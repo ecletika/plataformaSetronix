@@ -5,6 +5,9 @@ declare(strict_types=1);
 
 // A barra de topo mostra sempre o nome da plataforma, nunca o da aplicação.
 require_once __DIR__ . '/apps.php';
+// A barra de topo mostra o atalho das ausências a quem lhe possa dar uso,
+// e para isso precisa de saber se há mapa importado.
+require_once __DIR__ . '/rh.php';
 
 /**
  * @param string $title    Título da página.
@@ -50,6 +53,28 @@ a{color:var(--accent)}
 header.topbar{background:var(--brand);color:var(--brand-ink);padding:12px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 header.topbar h1{font-size:16px;margin:0;font-weight:600}
 header.topbar nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+/* Atalho das ausências: parece um item do menu, com um ícone à frente
+   para se distinguir dos separadores de navegação. */
+header.topbar nav a.atalho-ausencias{display:inline-flex;align-items:center;gap:6px}
+header.topbar nav a.atalho-ausencias svg{width:15px;height:15px}
+.atalho-ausencias{cursor:pointer}
+/* Rótulo que só os leitores de ecrã precisam de ouvir. */
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+dialog.janela{
+  border:0;border-radius:14px;padding:0;max-width:min(940px,94vw);width:100%;
+  background:var(--panel);color:var(--ink);box-shadow:0 24px 60px -20px rgba(27,16,22,.5)}
+dialog.janela::backdrop{background:rgba(27,16,22,.45)}
+dialog.janela .cab{
+  display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+dialog.janela .cab h2{margin:0;font-size:18px}
+dialog.janela .cab form{margin-left:auto;display:flex;gap:6px;align-items:center}
+dialog.janela .cab input[type=date]{margin:0}
+dialog.janela .fechar{
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:17px;line-height:1}
+dialog.janela .fechar:hover{background:var(--surface);color:var(--ink)}
+dialog.janela .conteudo{padding:16px 20px 20px;max-height:70vh;overflow:auto}
 header.topbar nav a{color:var(--brand-ink);opacity:.72;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
 header.topbar nav a:hover{background:rgba(127,127,127,.25);opacity:1}
 header.topbar nav a.active{background:rgba(127,127,127,.3);opacity:1}
@@ -418,6 +443,21 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
         </div>
       </span>
     <?php endif;
+
+    // Atalho para ver quem está fora, sem sair de onde se está. Só a quem
+    // gere aplicações e tem acesso a uma que tenha mapa importado: aos
+    // outros seria um botão para uma sala onde não entram.
+    $appRh = can('apps.manage') && $u ? rh_app_do_utilizador((int)$u['id']) : null;
+    if ($appRh):
+    ?>
+      <a class="atalho-ausencias" href="<?= e($base) ?>ausencias.php"
+         title="Quem está de férias, de baixa ou em falta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             aria-hidden="true"><path d="M8 2v4m8-4v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2"/></svg>
+        Ausências
+      </a>
+    <?php endif;
+
     if (can('users.manage') || can('apps.manage')) {
         $nav($base . 'admin/index.php', 'Administração', $dir === 'admin');
     }
@@ -438,6 +478,64 @@ footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     <div class="who"><?= e($u['full_name']) ?> · <?= e(ROLES[$u['role']] ?? $u['role']) ?></div>
   <?php endif; ?>
 </header>
+
+<?php if ($appRh ?? null): ?>
+<!-- A janela das ausências. Só existe para quem tem o atalho; o atalho
+     continua a ser uma ligação normal, por isso sem JavaScript abre a
+     página em vez da janela. -->
+<dialog class="janela" id="janela-ausencias" aria-labelledby="janela-ausencias-titulo">
+  <div class="cab">
+    <h2 id="janela-ausencias-titulo">Quem está fora</h2>
+    <form id="janela-ausencias-semana">
+      <label class="visually-hidden" for="janela-ausencias-data">Semana de</label>
+      <input type="date" id="janela-ausencias-data" value="<?= e(date('Y-m-d')) ?>">
+      <button type="submit">Ver</button>
+    </form>
+    <button class="fechar" type="button" aria-label="Fechar">&times;</button>
+  </div>
+  <div class="conteudo" id="janela-ausencias-conteudo">
+    <p class="muted">A carregar&hellip;</p>
+  </div>
+</dialog>
+<script>
+(function () {
+  var atalho = document.querySelector('.atalho-ausencias');
+  var janela = document.getElementById('janela-ausencias');
+  if (!atalho || !janela || typeof janela.showModal !== 'function') { return; }
+
+  var conteudo = document.getElementById('janela-ausencias-conteudo');
+  var data     = document.getElementById('janela-ausencias-data');
+  var forma    = document.getElementById('janela-ausencias-semana');
+  var base     = <?= json_encode($base . 'ausencias.php') ?>;
+
+  function carregar() {
+    conteudo.innerHTML = '<p class="muted">A carregar&hellip;</p>';
+    fetch(base + '?fragmento=1&semana=' + encodeURIComponent(data.value),
+          { credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) { throw new Error(r.status); } return r.text(); })
+      .then(function (html) { conteudo.innerHTML = html; })
+      .catch(function () {
+        // Sem resposta, manda-se a pessoa para a página, que funciona
+        // sozinha — melhor do que uma janela vazia sem explicação.
+        conteudo.innerHTML = '<p class="muted">Não foi possível carregar aqui. ' +
+          '<a href="' + base + '">Abrir a página das ausências</a>.</p>';
+      });
+  }
+
+  atalho.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    janela.showModal();
+    carregar();
+  });
+  forma.addEventListener('submit', function (ev) { ev.preventDefault(); carregar(); });
+  janela.querySelector('.fechar').addEventListener('click', function () { janela.close(); });
+  janela.addEventListener('click', function (ev) {
+    // Carregar fora da caixa fecha, como em qualquer janela deste género.
+    if (ev.target === janela) { janela.close(); }
+  });
+})();
+</script>
+<?php endif; ?>
 <?php endif;
 
     foreach (flash_take() as $f) {
@@ -600,6 +698,72 @@ function transfer_list(string $field, array $items, array $labels): void
       refresh();
     })();
     </script>
+    <?php
+}
+
+/**
+ * A grelha de quem está fora numa semana.
+ *
+ * Vive aqui, e não em cada página, porque é mostrada em dois sítios: na
+ * ficha da aplicação e no atalho da barra de topo.
+ */
+function semana_ausencias(array $sem): void
+{
+    $diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    if (!$sem['pessoas']) {
+        echo '<p class="muted">Nesta semana não há ninguém marcado como ausente.</p>';
+        return;
+    }
+    ?>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px">RH</th>
+            <th>Funcionário</th>
+            <?php foreach ($sem['dias'] as $d): ?>
+              <th style="width:58px;text-align:center">
+                <?= e($diasSemana[(int)date('N', strtotime($d)) - 1]) ?><br>
+                <span class="muted" style="font-weight:400"><?= e(substr($d, 8, 2)) ?></span>
+              </th>
+            <?php endforeach; ?>
+            <th style="width:150px">Nas listas</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($sem['pessoas'] as $p): ?>
+          <tr>
+            <td class="mono"><?= (int)$p['rh'] ?></td>
+            <td><?= e($p['nome']) ?></td>
+            <?php foreach ($sem['dias'] as $d): $x = $p['dias'][$d] ?? null; ?>
+              <td style="text-align:center"
+                  title="<?= $x ? e(RH_ESTADOS[$x['estado']] ?? $x['estado']) : 'Disponível' ?>">
+                <?php if ($x): ?>
+                  <span class="tag off"><?= e(RH_SIGLAS[$x['estado']] ?? '·') ?><?php
+                    if ($x['meio']): ?>½<?php endif; ?></span>
+                <?php else: ?>
+                  <span class="muted">—</span>
+                <?php endif; ?>
+              </td>
+            <?php endforeach; ?>
+            <td>
+              <?php if ($p['semana_toda']): ?>
+                <span class="tag off">não aparece</span>
+              <?php else: ?>
+                <span class="tag on"><?= (int)$p['livres'] ?> dia(s) livre(s)</span>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <p class="nota" style="margin-top:8px">
+      <?php foreach (RH_SIGLAS as $estado => $sigla): ?>
+        <b><?= e($sigla) ?></b> <?= e(RH_ESTADOS[$estado] ?? $estado) ?>&nbsp;&nbsp;
+      <?php endforeach; ?>
+      <b>½</b> meio dia
+    </p>
     <?php
 }
 

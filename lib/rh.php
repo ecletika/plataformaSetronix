@@ -329,6 +329,33 @@ function rh_mapa_atual(int $appId): ?array
     return q_one('SELECT * FROM rh_mapas WHERE app_id = ? ORDER BY id DESC LIMIT 1', [$appId]) ?: null;
 }
 
+/**
+ * A aplicação com mapa de atividade que esta pessoa pode abrir.
+ *
+ * Serve para decidir se vale a pena mostrar-lhe o atalho das ausências:
+ * sem mapa não há nada para ver, e sem acesso à aplicação o atalho seria
+ * uma porta para uma sala onde ela não entra.
+ *
+ * Devolve a primeira que servir — hoje só há uma aplicação com mapa.
+ *
+ * O acesso é o real, não o de gestor: quem gere aplicações vê-as todas na
+ * administração, mas isso não é ter a aplicação atribuída. Um gestor sem
+ * o Planeamento de Obras não tem que ver este atalho.
+ */
+function rh_app_do_utilizador(int $userId): ?array
+{
+    require_once __DIR__ . '/apps.php';
+    foreach (q_all('SELECT DISTINCT a.* FROM apps a
+                      JOIN rh_mapas m ON m.app_id = a.id
+                     WHERE a.is_active = 1
+                     ORDER BY a.sort_order, a.name') as $app) {
+        if (user_can_open_app($userId, $app)) {
+            return $app;
+        }
+    }
+    return null;
+}
+
 /** Resumo por estado, para o ecrã da administração. */
 function rh_resumo(int $appId): array
 {

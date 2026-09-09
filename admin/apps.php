@@ -733,59 +733,7 @@ layout_head('Aplicações', 'app', '../');
       </span>
     </form>
 
-    <?php if ($sem['pessoas']): ?>
-      <div class="scroll">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:70px">RH</th>
-              <th>Funcionário</th>
-              <?php foreach ($sem['dias'] as $i => $d): ?>
-                <th style="width:58px;text-align:center">
-                  <?= e($diasSemana[(int)date('N', strtotime($d)) - 1]) ?><br>
-                  <span class="muted" style="font-weight:400"><?= e(substr($d, 8, 2)) ?></span>
-                </th>
-              <?php endforeach; ?>
-              <th style="width:150px">Nas listas</th>
-            </tr>
-          </thead>
-          <tbody>
-          <?php foreach ($sem['pessoas'] as $p): ?>
-            <tr>
-              <td class="mono"><?= (int)$p['rh'] ?></td>
-              <td><?= e($p['nome']) ?></td>
-              <?php foreach ($sem['dias'] as $d): ?>
-                <?php $x = $p['dias'][$d] ?? null; ?>
-                <td style="text-align:center" title="<?= $x ? e(RH_ESTADOS[$x['estado']] ?? $x['estado']) : 'Disponível' ?>">
-                  <?php if ($x): ?>
-                    <span class="tag off"><?= e(RH_SIGLAS[$x['estado']] ?? '·') ?><?php
-                      if ($x['meio']): ?>½<?php endif; ?></span>
-                  <?php else: ?>
-                    <span class="muted">—</span>
-                  <?php endif; ?>
-                </td>
-              <?php endforeach; ?>
-              <td>
-                <?php if ($p['semana_toda']): ?>
-                  <span class="tag off">não aparece</span>
-                <?php else: ?>
-                  <span class="tag on"><?= (int)$p['livres'] ?> dia(s) livre(s)</span>
-                <?php endif; ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <p class="nota" style="margin-top:8px">
-        <?php foreach (RH_SIGLAS as $estado => $sigla): ?>
-          <b><?= e($sigla) ?></b> <?= e(RH_ESTADOS[$estado] ?? $estado) ?>&nbsp;&nbsp;
-        <?php endforeach; ?>
-        <b>½</b> meio dia
-      </p>
-    <?php else: ?>
-      <p class="muted">Nesta semana não há ninguém marcado como ausente.</p>
-    <?php endif; ?>
+    <?php semana_ausencias($sem); ?>
   <?php else: ?>
     <div class="alert warn" style="margin-top:14px">
       Ainda não foi importado nenhum mapa para esta aplicação.

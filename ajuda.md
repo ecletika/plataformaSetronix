@@ -470,6 +470,16 @@ O ficheiro é um **retrato do ano inteiro tirado num dia**, não um acrescento. 
 
 O ficheiro em si não fica guardado no servidor: o que fica são os dados que vêm lá dentro. O registo de quem importou o quê, e quando, fica no log de alterações.
 
+### O atalho "Ausências" na barra de topo
+
+Quem tem uma aplicação com mapa importado passa a ter, na barra de topo ao lado de **Aplicações**, um atalho chamado **Ausências**. Abre uma janela por cima do que está a fazer, com a mesma grelha da semana — quem falta, em que dias, e se ainda tem algum dia livre. Fecha-se e continua-se a planear, sem sair da página.
+
+Dentro da janela há um campo de data: muda-se a semana e a grelha volta a ser calculada.
+
+**Quem vê este atalho.** Só quem gere aplicações — Administrador ou Gestor de Aplicações — **e** tem acesso à aplicação que tem o mapa. Um gestor que não tenha o Planeamento de Obras atribuído não vê o atalho, porque não teria onde usar o que ele mostra. O acesso conta é o real, não o privilégio de gestor: gerir aplicações na administração não é a mesma coisa que ter a aplicação.
+
+Se o JavaScript não correr, o atalho continua a ser uma ligação normal e abre a mesma informação numa página (`ausencias.php`).
+
 ### Quem está fora não aparece na lista dessa semana
 
 A regra é: **basta um dia de trabalho livre** na semana de referência para a pessoa continuar a poder ser escolhida. Só quem estiver de férias, de baixa ou em falta em **todos** os dias de trabalho dessa semana é que desaparece das listas.
