@@ -263,6 +263,7 @@ layout_head('Aplicações', 'app', '../');
 
 <?php if ($error !== ''): ?><div class="alert err"><?= e($error) ?></div><?php endif; ?>
 
+<?php if (!$open): ?>
 <div class="card">
   <h2>Aplicações publicadas</h2>
   <p class="muted">
@@ -307,6 +308,7 @@ layout_head('Aplicações', 'app', '../');
     </tbody>
   </table>
 </div>
+<?php endif; ?>
 
 <?php if ($open):
     $versions = app_versions((int)$open['id']);
@@ -359,8 +361,16 @@ layout_head('Aplicações', 'app', '../');
 ?>
 <div class="card ficha-app">
   <div class="ficha-cab">
+    <a class="voltar" href="apps.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Todas as aplicações
+    </a>
     <h2><?= e($open['name']) ?></h2>
-    <p class="muted">Endereço: <code>app.php?id=<?= (int)$open['id'] ?></code></p>
+    <p class="muted">
+      Endereço: <code>app.php?id=<?= (int)$open['id'] ?></code>
+      <?= (int)$open['is_active'] === 1 ? '' : ' · <b>oculta dos utilizadores</b>' ?>
+    </p>
   </div>
 
   <div class="ficha-corpo">
@@ -398,16 +408,24 @@ layout_head('Aplicações', 'app', '../');
   <h3>Versões</h3>
   <div class="scroll">
     <table>
-      <thead><tr><th>#</th><th>Ficheiro</th><th>Tamanho</th><th>Data</th><th>Nota</th><th></th></tr></thead>
+      <thead><tr><th style="width:66px">#</th><th>Ficheiro</th>
+        <th style="width:120px">Enviada</th><th style="width:158px"></th></tr></thead>
       <tbody>
         <?php foreach ($versions as $v): $isCur = $cur && (int)$cur['id'] === (int)$v['id']; ?>
           <tr>
             <td><b><?= (int)$v['version'] ?></b>
                 <?= $isCur ? ' <span class="tag on">ativa</span>' : '' ?></td>
-            <td class="mono"><?= e($v['filename']) ?></td>
-            <td class="muted"><?= e(human_bytes((int)$v['size_bytes'])) ?></td>
-            <td class="muted mono"><?= e(substr((string)$v['created_at'], 0, 16)) ?></td>
-            <td class="muted"><?= e((string)$v['notes']) ?></td>
+            <td class="ficheiro">
+              <span class="mono" title="<?= e($v['filename']) ?>"><?= e($v['filename']) ?></span>
+              <?php if ((string)$v['notes'] !== ''): ?>
+                <span class="nota-v"><?= e((string)$v['notes']) ?></span>
+              <?php endif; ?>
+            </td>
+            <td class="muted mono quando">
+              <?= e(substr((string)$v['created_at'], 0, 10)) ?>
+              <span><?= e(substr((string)$v['created_at'], 11, 5)) ?>
+                &middot; <?= e(human_bytes((int)$v['size_bytes'])) ?></span>
+            </td>
             <td class="actions">
               <a class="btn" target="_blank" rel="noopener"
                  href="../app_raw.php?id=<?= (int)$open['id'] ?>&v=<?= (int)$v['id'] ?>">Pré-ver</a>
@@ -796,6 +814,7 @@ layout_head('Aplicações', 'app', '../');
 </div>
 <?php endif; ?>
 
+<?php if (!$open): ?>
 <div class="card">
   <h2>Nova aplicação</h2>
   <form method="post" enctype="multipart/form-data">
@@ -816,4 +835,5 @@ layout_head('Aplicações', 'app', '../');
 </div>
 
 </div>
+<?php endif; ?>
 <?php layout_foot(); ?>

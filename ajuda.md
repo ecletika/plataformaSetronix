@@ -167,7 +167,9 @@ Coluna por coluna:
 
 **A ficha de uma aplicação (botão "Gerir"):**
 
-A ficha abre com um **índice à esquerda** e o conteúdo à direita. Cada entrada do índice traz o número do que tem lá dentro — 19 versões, 32 campos, 68 funcionários — e um **ponto laranja** quando há trabalho por fazer nessa secção, como colunas por criar na base de dados.
+A ficha abre sozinha na página: a lista de aplicações e o formulário de criar uma nova desaparecem enquanto se está a gerir uma. Para voltar à lista há a ligação **Todas as aplicações**, em cima.
+
+A ficha tem um **índice à esquerda** e o conteúdo à direita. Cada entrada do índice traz o número do que tem lá dentro — 19 versões, 32 campos, 68 funcionários — e um **ponto laranja** quando há trabalho por fazer nessa secção, como colunas por criar na base de dados.
 
 Só é desenhada a secção escolhida. É por isso que a página deixou de ser uma coluna de sete blocos e passou a caber num ecrã.
 

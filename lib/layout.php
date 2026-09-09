@@ -294,6 +294,31 @@ header.topbar a.brand img{height:28px;width:auto;display:block;filter:var(--logo
 /* Com o painel mais estreito, os botões de cada versão partiam um por
    linha. Ficam em linha e a tabela rola, que é o que já fazia. */
 .ficha-painel td.actions{flex-wrap:nowrap;white-space:nowrap}
+/* A tabela das versões cabe no painel: o nome do ficheiro encolhe com
+   reticências em vez de empurrar a tabela para fora. Rolar de cima para
+   baixo é natural; de lado é sempre um estorvo. */
+.ficha-painel .scroll{overflow-x:visible}
+.ficha-painel table{table-layout:fixed;width:100%}
+.ficha-painel td.ficheiro{min-width:0}
+.ficha-painel td.ficheiro .mono{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.ficha-painel td.ficheiro .nota-v{
+  display:block;font-size:11px;color:var(--muted);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ficha-painel td.quando{white-space:nowrap;font-size:12px;line-height:1.35}
+.ficha-painel td.quando span{display:block;color:var(--ink-3);font-size:11px}
+/* Quatro botões numa coluna estreita: em grelha de dois ficam alinhados
+   uns com os outros, em vez de uma escada. */
+.ficha-painel td.actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-content:start}
+.ficha-painel td.actions .btn,
+.ficha-painel td.actions button{padding:4px 9px;font-size:12px}
+/* Voltar à lista, agora que ela não está na mesma página. */
+.voltar{
+  display:inline-flex;align-items:center;gap:5px;font-size:12.5px;text-decoration:none;
+  color:var(--muted);margin-bottom:6px;border-radius:6px;padding:2px 6px 2px 2px}
+.voltar:hover{color:var(--accent);background:var(--accent-soft)}
+.voltar svg{width:15px;height:15px}
+
 @media (max-width:760px){
   .ficha-corpo{grid-template-columns:1fr}
   .ficha-indice{border-right:0;border-bottom:1px solid var(--line);
