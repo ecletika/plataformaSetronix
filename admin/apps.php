@@ -642,28 +642,85 @@ layout_head('Aplicações', 'app', '../');
     <?php endif; ?>
 
     <?php
-      $hoje = date('Y-m-d');
-      $fora = rh_ausentes((int)$open['id'], $hoje);
+      // A semana que se está a consultar. Por omissão, a de hoje.
+      $semana = (string)($_GET['semana'] ?? '');
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $semana)) {
+          $semana = date('Y-m-d');
+      }
+      $seg = date('Y-m-d', strtotime('monday this week', strtotime($semana)));
+      $sem = rh_ausencias_semana((int)$open['id'], $seg);
+      $diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
     ?>
-    <h3 style="margin:20px 0 8px">Quem está fora hoje (<?= e($hoje) ?>)</h3>
-    <?php if ($fora): ?>
+    <h3 style="margin:22px 0 8px">Quem está fora, semana a semana</h3>
+    <p class="nota" style="margin:0 0 10px">
+      Escolha uma data e vê a semana dela. Quem não tiver <b>um único dia livre</b> na semana
+      não aparece nas listas do planeamento; quem tiver pelo menos um continua a aparecer.
+    </p>
+    <form method="get" class="actions" style="align-items:flex-end;margin-bottom:12px">
+      <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
+      <label style="margin:0">Semana de
+        <input type="date" name="semana" value="<?= e($seg) ?>">
+      </label>
+      <button type="submit">Ver</button>
+      <span class="muted" style="margin-left:auto">
+        <?= count($sem['dias']) ?> dia(s) de trabalho:
+        <?= e(implode(', ', array_map(static fn($d) => substr($d, 8, 2) . '/' . substr($d, 5, 2),
+                                      $sem['dias']))) ?>
+      </span>
+    </form>
+
+    <?php if ($sem['pessoas']): ?>
       <div class="scroll">
         <table>
-          <thead><tr><th style="width:90px">RH</th><th>Funcionário</th><th>Motivo</th></tr></thead>
+          <thead>
+            <tr>
+              <th style="width:70px">RH</th>
+              <th>Funcionário</th>
+              <?php foreach ($sem['dias'] as $i => $d): ?>
+                <th style="width:58px;text-align:center">
+                  <?= e($diasSemana[(int)date('N', strtotime($d)) - 1]) ?><br>
+                  <span class="muted" style="font-weight:400"><?= e(substr($d, 8, 2)) ?></span>
+                </th>
+              <?php endforeach; ?>
+              <th style="width:150px">Nas listas</th>
+            </tr>
+          </thead>
           <tbody>
-          <?php foreach ($fora as $p): ?>
+          <?php foreach ($sem['pessoas'] as $p): ?>
             <tr>
               <td class="mono"><?= (int)$p['rh'] ?></td>
               <td><?= e($p['nome']) ?></td>
-              <td class="muted"><?= e(RH_ESTADOS[$p['estado']] ?? $p['estado']) ?><?php
-                  if ((int)$p['meio_dia']): ?> (meio dia)<?php endif; ?></td>
+              <?php foreach ($sem['dias'] as $d): ?>
+                <?php $x = $p['dias'][$d] ?? null; ?>
+                <td style="text-align:center" title="<?= $x ? e(RH_ESTADOS[$x['estado']] ?? $x['estado']) : 'Disponível' ?>">
+                  <?php if ($x): ?>
+                    <span class="tag off"><?= e(RH_SIGLAS[$x['estado']] ?? '·') ?><?php
+                      if ($x['meio']): ?>½<?php endif; ?></span>
+                  <?php else: ?>
+                    <span class="muted">—</span>
+                  <?php endif; ?>
+                </td>
+              <?php endforeach; ?>
+              <td>
+                <?php if ($p['semana_toda']): ?>
+                  <span class="tag off">não aparece</span>
+                <?php else: ?>
+                  <span class="tag on"><?= (int)$p['livres'] ?> dia(s) livre(s)</span>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
           </tbody>
         </table>
       </div>
+      <p class="nota" style="margin-top:8px">
+        <?php foreach (RH_SIGLAS as $estado => $sigla): ?>
+          <b><?= e($sigla) ?></b> <?= e(RH_ESTADOS[$estado] ?? $estado) ?>&nbsp;&nbsp;
+        <?php endforeach; ?>
+        <b>½</b> meio dia
+      </p>
     <?php else: ?>
-      <p class="muted">Ninguém está marcado como ausente neste dia.</p>
+      <p class="muted">Nesta semana não há ninguém marcado como ausente.</p>
     <?php endif; ?>
   <?php else: ?>
     <div class="alert warn" style="margin-top:14px">

@@ -210,7 +210,7 @@ Para uma aplicação já existente (clicada em "Gerir"):
 6. **Mapa de atividade** — importa o ficheiro `.xlsx` que sai do sistema de recursos humanos:
    - Mostra o mapa em uso: ficheiro, data do relatório, período coberto, e quanto entrou.
    - **Dias por estado** — quantos dias de férias, de baixa, de falta, e quantas folhas estão fechadas. As linhas marcadas com **ausência** são os estados em que a pessoa não está disponível para trabalhar.
-   - **Quem está fora hoje** — a lista de quem está de férias, de baixa ou em falta no dia de hoje.
+   - **Quem está fora, semana a semana** — escolhe-se uma data e vê-se a semana dela: quem falta, em que dias, e se sobra algum dia livre. A coluna **Nas listas** diz se a pessoa continua disponível para o planeamento dessa semana ou se desaparece das listas.
    - Formulário de importação, com o botão **Importar**.
 
 7. **Apagar** — formulário destrutivo:
@@ -462,17 +462,21 @@ O ficheiro é um **retrato do ano inteiro tirado num dia**, não um acrescento. 
 
 O ficheiro em si não fica guardado no servidor: o que fica são os dados que vêm lá dentro. O registo de quem importou o quê, e quando, fica no log de alterações.
 
-### Quem está fora não chega a aparecer
+### Quem está fora não aparece na lista dessa semana
 
-Com um mapa importado, quem hoje está de férias, de baixa ou em falta é **retirado das listas antes de a página sair do servidor**. Os nomes não são escondidos no browser: não chegam a ser enviados. Quem abrir a aplicação e olhar para o código da página também não os encontra.
+A regra é: **basta um dia de trabalho livre** na semana de referência para a pessoa continuar a poder ser escolhida. Só quem estiver de férias, de baixa ou em falta em **todos** os dias de trabalho dessa semana é que desaparece das listas.
 
-Isto é refeito **de cada vez que a aplicação abre**, com o dia de hoje. À meia-noite muda sozinho, sem depender de nenhuma tarefa agendada que possa falhar em silêncio.
+Os dias de trabalho são **segunda a sexta, tirando feriados**. O sábado fica de fora do cálculo: no mapa de recursos humanos as férias são marcadas de segunda a sexta e o sábado fica em branco, por isso contá-lo daria sempre "um dia livre" e ninguém chegaria a ser filtrado.
 
-O dia de referência é **hoje**, não a semana que se está a planear. Quem estiver de férias hoje não aparece, mesmo que se esteja a planear um mês à frente; e quem vai de férias para a semana aparece hoje na lista.
+A lista é pedida ao servidor **quando se escolhe a semana**, e volta a ser pedida se a semana mudar. A regra e os dados estão do lado do servidor; a aplicação só pergunta.
 
-**O que já está gravado nunca é tocado.** Se um planeamento tem alguém que entretanto ficou de férias, ao abrir esse planeamento o nome continua lá, no campo dele — só naquele campo, não na lista. É a única forma de não apagar, sem ninguém dar por isso, uma decisão que alguém tomou.
+Exemplo real, na semana de 7 a 11 de setembro: o *Hugo Vieira* está de férias os cinco dias e não aparece; o *Carlos Ribeiro* está de baixa quatro dias mas tem a sexta livre, por isso continua a aparecer.
 
-Num planeamento **novo** não há reposição nenhuma: o supervisor deixa de vir pré-preenchido se essa pessoa estiver fora, e o campo fica vazio à espera de outra escolha.
+**O que já está gravado nunca é tocado.** Se um planeamento tem alguém que entretanto ficou de férias a semana toda, ao abrir esse planeamento o nome continua lá, no campo dele — só naquele campo, não na lista. É a única forma de não apagar, sem ninguém dar por isso, uma decisão que alguém tomou.
+
+Num planeamento **novo** não há reposição nenhuma: o supervisor deixa de vir sugerido se essa pessoa estiver fora a semana toda, e o campo fica vazio à espera de outra escolha.
+
+Se o servidor não responder, **não se esconde ninguém**. Mais vale a lista completa do que uma lista que engana.
 
 ### Como as pessoas dos dois lados se ligam
 
@@ -482,13 +486,7 @@ Quando o nome curto dá em **duas pessoas diferentes**, ou em nenhuma, **não h�
 
 Nas listas atuais, dos 58 nomes da aplicação ligam-se 50; os outros 8 são as entradas *Tempo de secagem*, que não são pessoas.
 
-Para que isto funcione, a aplicação declara no bloco `setronix-dados` em que variável tem as suas listas e quais delas são de pessoas:
-
-```json
-"pessoas": { "variavel": "LISTS", "listas": ["managers", "supervisors", "setLeaders", "setHelpers"] }
-```
-
-Sem essa declaração, a plataforma não mexe em nada — não vai adivinhar onde estão os nomes.
+A aplicação envia ao servidor os nomes que tem nas suas listas; o servidor devolve os que devem desaparecer. A plataforma não precisa de saber onde a aplicação guarda os nomes.
 
 ### Se aparecer um símbolo desconhecido
 

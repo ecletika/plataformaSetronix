@@ -85,14 +85,6 @@ if (isset($_GET['transferir'])) {
 // browser, como sempre fizeram.
 $manifesto = dados_manifesto($html);
 if ($manifesto !== null) {
-    // Quem hoje não pode trabalhar sai das listas da aplicação antes de
-    // a página seguir. Não é escondido no browser: os nomes não chegam a
-    // ser enviados, e por isso não há como escolhê-los. Como é refeito a
-    // cada abertura, à meia-noite muda sozinho.
-    if (rh_mapa_atual((int)$app['id'])) {
-        rh_limpar_html((int)$app['id'], $html, $manifesto);
-    }
-
     $boot = [
         'app'   => (int)$app['id'],
         'csrf'  => csrf_token(),

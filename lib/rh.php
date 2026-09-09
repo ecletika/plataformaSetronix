@@ -55,6 +55,17 @@ const RH_ESTADOS = [
     'desconhecido'        => 'Símbolo não reconhecido',
 ];
 
+/** Abreviaturas para a grelha da semana, onde não cabe o nome todo. */
+const RH_SIGLAS = [
+    'ferias'              => 'F',
+    'baixa'               => 'B',
+    'parentalidade'       => 'P',
+    'casamento'           => 'C',
+    'nojo'                => 'N',
+    'falta_justificada'   => 'FJ',
+    'falta_injustificada' => 'FI',
+];
+
 /** Estados em que a pessoa não está disponível para trabalhar. */
 const RH_AUSENTE = ['ferias', 'baixa', 'parentalidade', 'casamento', 'nojo',
                     'falta_justificada', 'falta_injustificada'];
@@ -346,167 +357,146 @@ function rh_palavras(string $nome): array
 }
 
 /**
- * Quais destes nomes são de gente que hoje não pode trabalhar.
+ * Dias de trabalho de uma semana.
  *
- * O mapa conhece as pessoas pelo nome completo — "Hugo Emanuel Matos
- * Vieira" — e a aplicação pelo nome curto — "Hugo Vieira". Ligam-se por
- * palavras: se todas as palavras do nome curto estiverem no nome
- * completo, é a mesma pessoa.
+ * Segunda a sexta, tirando feriados. O sábado fica de fora: no mapa de
+ * recursos humanos as férias são marcadas de segunda a sexta e o sábado
+ * fica em branco, por isso contá-lo dava sempre "um dia livre" e ninguém
+ * chegaria a ser filtrado.
  *
- * Nome curto que dê em duas pessoas, ou em nenhuma, fica de fora. Um
- * nome a menos na lista é um incómodo; tirar a pessoa errada é uma
- * equipa desfeita sem razão.
- *
- * @return array Os nomes a tirar, com o motivo: ['Hugo Vieira' => 'ferias']
+ * São cinco dias por escolha, não por acaso — mudar para seis é mudar
+ * este número.
  */
-function rh_indisponiveis(int $appId, string $dia, array $nomes): array
-{
-    $ausentes = [];
-    foreach (rh_ausentes($appId, $dia) as $r) {
-        $ausentes[] = ['palavras' => rh_palavras((string)$r['nome']), 'estado' => $r['estado']];
-    }
-    if (!$ausentes) {
-        return [];
-    }
+const RH_DIAS_UTEIS = 5;
 
+function rh_dias_de_trabalho(int $appId, string $semana): array
+{
+    $seg = date('Y-m-d', strtotime('monday this week', strtotime($semana)));
+    $feriados = [];
+    foreach (q_all('SELECT dia FROM rh_feriados WHERE app_id = ?', [$appId]) as $r) {
+        $feriados[$r['dia']] = true;
+    }
     $out = [];
-    foreach ($nomes as $nome) {
-        $curto = rh_palavras((string)$nome);
-        if (!$curto) {
-            continue;
-        }
-        $achado = null;
-        foreach ($ausentes as $a) {
-            if (!array_diff($curto, $a['palavras'])) {
-                if ($achado !== null) {
-                    $achado = null;   // dois candidatos: não se arrisca
-                    break;
-                }
-                $achado = $a['estado'];
-            }
-        }
-        if ($achado !== null) {
-            $out[(string)$nome] = $achado;
+    for ($i = 0; $i < RH_DIAS_UTEIS; $i++) {
+        $d = date('Y-m-d', strtotime($seg . ' +' . $i . ' day'));
+        if (!isset($feriados[$d])) {
+            $out[] = $d;
         }
     }
     return $out;
 }
 
 /**
- * Tira do HTML as pessoas que hoje não podem trabalhar.
+ * Quem não tem um único dia livre numa semana.
  *
- * A aplicação declara, no bloco "setronix-dados", em que variável tem as
- * suas listas e quais delas são de pessoas. Aqui essa variável é lida,
- * as listas declaradas são limpas, e o HTML segue já sem esses nomes:
- * não chegam ao browser, e por isso não há como escolhê-los.
+ * A regra é essa: basta um dia de trabalho livre para a pessoa poder ser
+ * escolhida. Quem estiver de férias, de baixa ou em falta em todos os
+ * dias de trabalho da semana é que não deve aparecer.
  *
- * Muda sozinho à meia-noite, porque é refeito de cada vez que a página
- * abre e o dia de referência é o de hoje.
- *
- * O que já está gravado não é tocado. Um planeamento antigo com alguém
- * que entretanto ficou de férias continua com essa pessoa: tirá-la seria
- * apagar uma decisão que alguém tomou.
- *
- * @return array Os nomes tirados, com o motivo.
+ * @return array Nome completo => estado do primeiro dia.
  */
-function rh_limpar_html(int $appId, string &$html, array $manifesto, ?string $dia = null): array
+function rh_fora_a_semana_toda(int $appId, string $semana): array
 {
-    $def = $manifesto['pessoas'] ?? null;
-    if (!is_array($def)) {
+    $dias = rh_dias_de_trabalho($appId, $semana);
+    if (!$dias) {
         return [];
     }
-    $variavel = (string)($def['variavel'] ?? '');
-    $listas   = isset($def['listas']) && is_array($def['listas']) ? $def['listas'] : [];
-    if (!preg_match('/^[A-Za-z_$][A-Za-z0-9_$]{0,40}$/', $variavel) || !$listas) {
-        return [];
-    }
+    $inDias = implode(',', array_fill(0, count($dias), '?'));
+    $inEst  = implode(',', array_fill(0, count(RH_AUSENTE), '?'));
 
-    $bloco = rh_achar_objecto($html, $variavel);
-    if ($bloco === null) {
-        return [];
+    $out = [];
+    foreach (q_all(
+        "SELECT f.nome, MIN(d.estado) AS estado, COUNT(*) AS n
+           FROM rh_dias d
+           JOIN rh_funcionarios f ON f.id = d.funcionario_id
+          WHERE f.app_id = ? AND d.dia IN ($inDias) AND d.estado IN ($inEst)
+          GROUP BY f.id
+         HAVING n >= ?",
+        array_merge([$appId], $dias, RH_AUSENTE, [count($dias)])
+    ) as $r) {
+        $out[$r['nome']] = $r['estado'];
     }
-    [$ini, $fim] = $bloco;
-    $dados = json_decode(substr($html, $ini, $fim - $ini), true);
-    if (!is_array($dados)) {
-        return [];
-    }
-
-    // Todos os nomes que aparecem nas listas de pessoas.
-    $nomes = [];
-    foreach ($listas as $lista) {
-        foreach ((array)($dados[$lista] ?? []) as $n) {
-            if (is_string($n)) {
-                $nomes[$n] = true;
-            }
-        }
-    }
-    if (!$nomes) {
-        return [];
-    }
-
-    $fora = rh_indisponiveis($appId, $dia ?? date('Y-m-d'), array_keys($nomes));
-    if (!$fora) {
-        return [];
-    }
-
-    foreach ($listas as $lista) {
-        if (!isset($dados[$lista]) || !is_array($dados[$lista])) {
-            continue;
-        }
-        $dados[$lista] = array_values(array_filter(
-            $dados[$lista],
-            static fn($n) => !is_string($n) || !isset($fora[$n])
-        ));
-    }
-
-    $novo = json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    $html = substr($html, 0, $ini) . $novo . substr($html, $fim);
-    return $fora;
+    return $out;
 }
 
 /**
- * Onde começa e acaba o objecto de uma variável no HTML.
+ * Todas as ausências de uma semana, pessoa a pessoa, dia a dia.
  *
- * Conta chavetas, saltando as que estão dentro de texto. É preciso
- * porque as listas têm nomes com aspas e acentos, e um corte a olho
- * partia o JSON ao meio.
- *
- * @return array|null [inicio, fim] ou null se não encontrar.
+ * Para o ecrã de quem planeia: quem falta, em que dias, e se falta a
+ * semana inteira — que é o caso em que deixa de aparecer nas listas.
  */
-function rh_achar_objecto(string $html, string $variavel): ?array
+function rh_ausencias_semana(int $appId, string $semana): array
 {
-    if (!preg_match('/\b' . preg_quote($variavel, '/') . '\s*=\s*\{/', $html, $m, PREG_OFFSET_CAPTURE)) {
-        return null;
+    $dias = rh_dias_de_trabalho($appId, $semana);
+    if (!$dias) {
+        return ['dias' => [], 'pessoas' => []];
     }
-    $ini   = (int)$m[0][1] + strlen($m[0][0]) - 1;
-    $nivel = 0;
-    $texto = false;
-    $fuga  = false;
+    $inDias = implode(',', array_fill(0, count($dias), '?'));
+    $inEst  = implode(',', array_fill(0, count(RH_AUSENTE), '?'));
 
-    for ($i = $ini, $n = strlen($html); $i < $n; $i++) {
-        $c = $html[$i];
-        if ($texto) {
-            if ($fuga) {
-                $fuga = false;
-            } elseif ($c === '\\') {
-                $fuga = true;
-            } elseif ($c === '"') {
-                $texto = false;
-            }
+    $pessoas = [];
+    foreach (q_all(
+        "SELECT f.rh, f.nome, d.dia, d.estado, d.meio_dia
+           FROM rh_dias d
+           JOIN rh_funcionarios f ON f.id = d.funcionario_id
+          WHERE f.app_id = ? AND d.dia IN ($inDias) AND d.estado IN ($inEst)
+          ORDER BY f.nome, d.dia",
+        array_merge([$appId], $dias, RH_AUSENTE)
+    ) as $r) {
+        $k = (int)$r['rh'];
+        if (!isset($pessoas[$k])) {
+            $pessoas[$k] = ['rh' => $k, 'nome' => $r['nome'], 'dias' => []];
+        }
+        $pessoas[$k]['dias'][$r['dia']] = ['estado' => $r['estado'], 'meio' => (int)$r['meio_dia']];
+    }
+    foreach ($pessoas as $k => $p) {
+        $pessoas[$k]['semana_toda'] = count($p['dias']) >= count($dias);
+        $pessoas[$k]['livres']      = count($dias) - count($p['dias']);
+    }
+    return ['dias' => $dias, 'pessoas' => array_values($pessoas)];
+}
+
+/**
+ * Quais destes nomes ficam de fora numa semana.
+ *
+ * Recebe os nomes curtos que a aplicação usa e devolve os que devem
+ * desaparecer das listas, com o motivo.
+ */
+function rh_fora_na_semana(int $appId, string $semana, array $nomes): array
+{
+    $fora = rh_fora_a_semana_toda($appId, $semana);
+    if (!$fora) {
+        return [];
+    }
+    $completos = [];
+    foreach ($fora as $nome => $estado) {
+        $completos[] = ['palavras' => rh_palavras((string)$nome), 'estado' => $estado];
+    }
+
+    $out = [];
+    foreach ($nomes as $nome) {
+        if (!is_string($nome)) {
             continue;
         }
-        if ($c === '"') {
-            $texto = true;
-        } elseif ($c === '{') {
-            $nivel++;
-        } elseif ($c === '}') {
-            $nivel--;
-            if ($nivel === 0) {
-                return [$ini, $i + 1];
+        $curto = rh_palavras($nome);
+        if (!$curto) {
+            continue;
+        }
+        $achado = null;
+        foreach ($completos as $c) {
+            if (!array_diff($curto, $c['palavras'])) {
+                if ($achado !== null) {
+                    $achado = null;   // dois candidatos: não se arrisca
+                    break;
+                }
+                $achado = $c['estado'];
             }
         }
+        if ($achado !== null) {
+            $out[$nome] = $achado;
+        }
     }
-    return null;
+    return $out;
 }
 
 /** Quem está ausente num dia, e porquê. */
