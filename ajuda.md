@@ -236,56 +236,87 @@ Formulário para criar uma aplicação:
 
 ### Utilizadores
 
-Este separador é apenas para Administrador.
+Este separador é apenas para Administrador. Trata só da conta em si — quem vê cada
+aplicação, e com que nível, decide-se no separador **Permissões**.
 
-**Tabela de utilizadores:**
-Coluna por coluna:
-- **Utilizador** — nome de utilizador e e-mail abaixo em letra pequena.
-- **Nome** — nome completo.
-- **Perfil** — etiqueta com o perfil (Administrador, Gestor de aplicações, Utilizador, Consulta).
-- **Estado** — etiqueta "Ativo" ou "Inativo". Se a conta está bloqueada por tentativas, aparece uma segunda etiqueta "Bloqueado".
-- **MFA** — etiqueta "Associado" ou "Por associar". Se o MFA é exigido, aparece em letra pequena "exigido".
-- **Último acesso** — data e hora do último login (ex.: "2024-06-15 14:32").
-
-Ao clicar numa linha, a ficha da pessoa abre por baixo com os formulários de ação.
-
-**Criar utilizador:**
-Formulário no topo:
+**Criar utilizador** (cartão de cima):
 - **Nome de utilizador** (obrigatório) — 3 a 64 caracteres, letras minúsculas, números, ponto, hífen ou underscore.
 - **E-mail** (obrigatório) — validado como e-mail.
 - **Nome completo** (obrigatório).
-- **Perfil** (obrigatório) — dropdown com os quatro perfis.
-- **Palavra-passe inicial** (opcional) — se deixado vazio, gera-se uma automaticamente. Se indicada, tem de respeitar as regras de robustez (comprimento mínimo, letra, algarismo, sem sequências óbvias).
-- Caixa de seleção: **Conta ativa**.
-- Caixa de seleção: **Exigir MFA a esta conta** (apenas se o MFA não é exigido globalmente).
-- **Acesso às aplicações** — lista de transferência para escolher que aplicações a pessoa vê. As aplicações abertas a todos aparecem fixas na coluna direita com "aberta a todos".
-- Botão **Criar utilizador**. Após sucesso, aparece a palavra-passe gerada numa caixa destacada, com a instrução "Anote agora — não voltará a ser mostrada".
+- **Palavra-passe inicial** (opcional) — vazia gera uma automaticamente. Indicada, tem de respeitar as regras de robustez.
+- **Perfil** — quatro botões: coroa (Administrador), escudo (Gestor de aplicações), bonequinho (Utilizador), olho (Consulta).
+- Caixas: **Conta ativa** e **Exigir MFA a esta conta** (esta só aparece se o MFA não for exigido a toda a gente).
+- Botão **Criar utilizador**. A palavra-passe gerada aparece uma única vez, numa caixa destacada.
 
-**Editar utilizador:**
-Clicando "Editar dados" na ficha, reabre o formulário de criar com os dados atuais. Permite alterar tudo exceto a palavra-passe (há um botão específico para isso).
+**A lista, coluna a coluna:**
+- **Utilizador** — o nome de utilizador e o e-mail. Ambos se escrevem por cima.
+- **Nome** — o nome completo, também editável na linha.
+- **Perfil** — a coroa é Administrador, o bonequinho é Utilizador. Carregue num deles para trocar. Se a pessoa for Gestor de aplicações ou Consulta, esse ícone aparece também, para se poder sair dele.
+- **Estado** — Ativo ou Inativo; carregue para trocar. Se a conta estiver bloqueada por tentativas falhadas, aparece por baixo um botão **Desbloquear**.
+- **MFA** — Associado ou Por associar, e "exigido" em letra pequena quando é obrigatório.
+- **Presença** — verde é estar em linha nos últimos cinco minutos.
+- **Ações** — seis ícones, três em cima e três em baixo (ver a seguir).
+- **App de arranque** — a estrela e a lista das aplicações a que essa pessoa tem acesso. Acende a laranja quando há uma escolhida. A primeira opção é **Nenhuma**, que faz a pessoa ver a lista ao entrar.
 
-**Ficha do utilizador (ações por contexto):**
+**Editar na própria linha:** escreva por cima do utilizador, do e-mail ou do nome. A linha
+fica marcada a amarelo e o lápis acende, até carregar no lápis para guardar. Sair da página
+sem guardar deita fora o que escreveu.
 
-1. **Verificação em duas etapas:**
-   - Se MFA não está ativado: mostra "Por associar" e explica que o utilizador tem de ativar em **A minha conta**.
-   - Se MFA está ativado: mostra "Associado" com data, e o número de códigos de recuperação por usar.
-   - Comutador (apenas se MFA não é exigido globalmente): **Exigir MFA a esta conta** / **opcional para esta conta**. Ao ativar, obriga a pessoa a passar por MFA no próximo login.
-   - Botão (apenas se MFA está ativado): **Repor MFA (novo dispositivo)** — remove o dispositivo associado, forçando a pessoa a associar um novo no próximo login.
+**Os seis ícones:**
 
-2. **Palavra-passe:**
-   - Botão **Repor palavra-passe** — gera uma nova, mostra-a uma única vez e marca a conta para forçar alteração no próximo login.
-   - Botão **Desbloquear conta** (apenas se a conta está bloqueada) — limpa as tentativas falhadas e o tempo de bloqueio.
+| Ícone | O que faz |
+|---|---|
+| Lápis | Guarda o que escreveu nesta linha. |
+| Chave | Repõe a palavra-passe. Gera uma nova, mostra-a uma vez e obriga a alterá-la no próximo início de sessão. |
+| Botão de ligar | Termina todas as sessões abertas da pessoa, em todos os equipamentos. |
+| Escudo | Passa a exigir, ou deixa de exigir, MFA a esta conta. Fica apagado quando o MFA é exigido a toda a gente. |
+| Seta circular | Repõe o MFA: remove o dispositivo associado, para a pessoa associar outro. Fica apagado se ainda não tem nenhum. |
+| Caixote | Abre a página de confirmação para apagar a conta. |
 
-3. **Sessões:**
-   - Mostra quantas sessões estão abertas nas últimas 12 horas.
-   - Botão **Terminar sessões** — fecha a pessoa em todos os equipamentos onde tem login.
+**Apagar** pede que escreva o nome de utilizador exato antes de avançar. Apaga a conta e
+tudo o que lhe pertence: sessões, dispositivo de MFA, códigos de recuperação, acessos e
+preferências. Não há como desfazer — mas o que a pessoa fez continua no log de alterações.
+Se só quer impedir o acesso, **desative** em vez de apagar: mantém o histórico ligado à conta.
 
-4. **Conta:**
-   - Botão **Editar dados** — volta ao formulário de criar/editar.
-   - Botão **Desativar conta** (apenas se não é o próprio utilizador) — desativa a conta e termina todas as sessões. Se é uma conta administrador, só deixa desativar se há outro administrador ativo.
-   - Botão **Reativar conta** (apenas se a conta está inativa) — torna a conta ativa novamente.
+**Salvaguardas:** não pode desativar nem apagar a sua própria conta, e a plataforma nunca
+o deixa ficar sem nenhum administrador ativo.
 
-**Nota importante:** As contas não são apagadas — são desativadas, de forma a que o log de alterações continue coerente.
+### Permissões
+
+Este separador é apenas para Administrador. É onde se decide **quem entra em cada
+aplicação e o que lá pode fazer**.
+
+À esquerda estão todas as aplicações, com uma caixa para procurar pelo nome. O número à
+frente de cada uma diz quantas pessoas têm nível atribuído; um traço quer dizer que
+ninguém foi escolhido. Carregue numa aplicação para a abrir à direita.
+
+À direita, cada pessoa tem quatro botões:
+
+| Botão | O que quer dizer |
+|---|---|
+| Sem acesso | Não vê a aplicação. |
+| Viewer | Abre e consulta, mas não altera nada. |
+| Editor | Trabalha normalmente na aplicação. |
+| Admin | Pode tudo lá dentro, incluindo apagar e fechar registos. |
+
+**Aberta a todos ou reservada:** uma aplicação a que ninguém foi atribuído está aberta a
+toda a gente, e todos entram como Editor. Assim que der nível a uma pessoa, a aplicação
+passa a **reservada** — só quem estiver na lista a vê. Para a voltar a abrir, use o botão
+**Abrir a todos**, que limpa os níveis atribuídos.
+
+**Quem gere aplicações é sempre Admin.** Administradores e Gestores de aplicações têm
+sempre o nível máximo em todas, e por isso não têm botões — se quiser limitar alguém,
+mude-lhe o perfil em Utilizadores.
+
+**Como a aplicação sabe o nível:** a plataforma injeta-o em `SETRONIX_BOOT.nivel` e a
+aplicação desliga sozinha o que a pessoa não pode fazer. O servidor valida na mesma
+quando se grava, por isso mexer no browser não dá poderes a ninguém.
+
+**Contas desativadas** não aparecem nesta lista.
+
+**Dois caminhos, um ecrã:** a ficha de cada aplicação, em Aplicações → Quem pode abrir,
+mostra o resumo de quem lá entra e manda para aqui. Não há dois sítios a escrever a mesma
+coisa.
 
 ### Log de alterações
 
@@ -358,15 +389,23 @@ Tabela com as sessões abertas nos últimos 12 horas:
 
 ## Regras que causam dúvidas
 
-### Visibilidade das aplicações e atribuição de utilizadores
+### Visibilidade das aplicações e nível de permissão
 
-Uma aplicação publicada passa a estar disponível, por omissão, a **todos os utilizadores autenticados**.
+São duas coisas diferentes, e decidem-se as duas em **Administração → Permissões**:
 
-Quando um administrador atribui a aplicação a pessoas específicas (clicando em "Gerir aplicação" → "Quem pode abrir"), ela deixa de estar aberta a todos e passa a ser visível **apenas para as pessoas atribuídas**.
+- **Acesso** — vê ou não vê a aplicação.
+- **Nível** — o que pode fazer lá dentro: Viewer, Editor ou Admin.
 
-Se depois o administrador esvazia essa lista (move toda a gente para a coluna esquerda), a aplicação volta a estar **aberta a todos**.
+Uma aplicação publicada está, por omissão, disponível a **todos os utilizadores
+autenticados**, e todos entram como Editor. Assim que se dá nível a uma pessoa, a
+aplicação passa a ser **só das pessoas que estiverem nessa lista**. O botão **Abrir a
+todos** desfaz isso e volta a abri-la a toda a gente.
 
-Corolário: uma aplicação sem ninguém atribuído é visível a toda a gente. Assim que há alguém atribuído, passa a ser só desses.
+Corolário: uma aplicação sem ninguém escolhido é visível a toda a gente; com uma pessoa
+que seja, passa a ser só dessas.
+
+Administradores e Gestores de aplicações veem sempre todas as aplicações, sempre como
+Admin. Para limitar alguém, mude-lhe o perfil em Utilizadores.
 
 ### MFA e o papel do administrador
 

@@ -133,6 +133,9 @@ CREATE TABLE IF NOT EXISTS app_versions (
 CREATE TABLE IF NOT EXISTS user_apps (
   user_id     INT UNSIGNED NOT NULL,
   app_id      INT UNSIGNED NOT NULL,
+  -- O que esta pessoa pode fazer DENTRO desta aplicacao. A aplicacao recebe
+  -- o nivel em window.SETRONIX_BOOT.nivel e desliga o que nao for permitido.
+  nivel       ENUM('viewer','editor','admin') NOT NULL DEFAULT 'editor',
   granted_by  INT UNSIGNED NULL,
   granted_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id, app_id),

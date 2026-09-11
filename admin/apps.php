@@ -186,32 +186,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('apps.php?id=' . $id . '&sec=dados');
         }
 
-        if ($action === 'access') {
-            app_set_users($id, (array)($_POST['users'] ?? []));
-            $n = count(app_user_ids($id));
-
-            // Quem ficou com mais do que uma aplicação e sem nenhuma escolhida
-            // precisa que alguém decida qual abre ao entrar.
-            $porEscolher = [];
-            foreach (q_all('SELECT id, username, role FROM users WHERE is_active = 1') as $uu) {
-                $est = app_sync_default((int)$uu['id'],
-                                        in_array($uu['role'], ['admin', 'gestor'], true));
-                if ($est['precisa_escolher']) {
-                    $porEscolher[] = $uu['username'];
-                }
-            }
-            if ($porEscolher) {
-                flash('warn', 'Falta escolher a aplicação que abre ao entrar para: '
-                    . implode(', ', $porEscolher)
-                    . '. Faça-o em Utilizadores, na ficha de cada um.');
-            }
-            audit('update', 'app', $id, 'Acesso a ' . $app['name'] . ': '
-                  . ($n === 0 ? 'todos os utilizadores' : $n . ' utilizador(es)'));
-            flash('ok', $n === 0
-                ? 'A aplicação passa a estar visível para todos os utilizadores.'
-                : 'Acesso reservado a ' . $n . ' utilizador(es).');
-            redirect('apps.php?id=' . $id . '&sec=acessos');
-        }
 
         if ($action === 'rollback') {
             $v = app_rollback($id, (int)($_POST['version_id'] ?? 0));
@@ -461,52 +435,41 @@ layout_head('Aplicações', 'app', '../');
 <?php if ($sec === 'acessos'): ?>
   <h3>Quem pode abrir</h3>
   <?php
-    $comAcesso = $failed === 'access'
-        ? array_map('intval', (array)($_POST['users'] ?? []))
-        : app_user_ids((int)$open['id']);
-    $utilizadores = q_all('SELECT id, username, full_name, role, is_active
-                             FROM users ORDER BY is_active DESC, full_name');
+    $niveisApp = app_niveis((int)$open['id']);
+    $rotulos   = ['viewer' => 'Viewer', 'editor' => 'Editor', 'admin' => 'Admin'];
+    $comNivel  = $niveisApp
+        ? q_all('SELECT id, username, full_name, role FROM users WHERE id IN ('
+                . implode(',', array_map('intval', array_keys($niveisApp)))
+                . ') ORDER BY full_name')
+        : [];
   ?>
-  <form method="post">
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="access">
-    <input type="hidden" name="id" value="<?= (int)$open['id'] ?>">
-    <p class="muted" style="margin:0 0 8px">
-      <?php if (!$comAcesso): ?>
-        Neste momento <b>todos os utilizadores</b> veem esta aplicação.
-        Assinale pessoas para a reservar só a elas.
-      <?php else: ?>
-        Reservada a <b><?= count($comAcesso) ?></b> utilizador(es).
-        Desmarque todos para a voltar a abrir a toda a gente.
-      <?php endif; ?>
-      Quem gere aplicações vê sempre todas.
+  <?php if (!$niveisApp): ?>
+    <p class="muted">
+      Ninguém foi escolhido, por isso <b>toda a gente</b> vê esta aplicação, como Editor.
+      Para a reservar, ou para dar a alguém um nível diferente, use o ecrã de Permissões.
     </p>
-    <?php
-      $itens = [];
-      foreach ($utilizadores as $u) {
-          $itens[] = [
-              'id'      => (int)$u['id'],
-              'title'   => $u['full_name'],
-              'sub'     => $u['username'] . ' · ' . (ROLES[$u['role']] ?? $u['role']),
-              'mark'    => mb_strtoupper(mb_substr($u['full_name'], 0, 1)),
-              'granted' => in_array((int)$u['id'], $comAcesso, true),
-              'note'    => (int)$u['is_active'] === 1 ? '' : 'inativo',
-          ];
-      }
-      transfer_list('users', $itens, [
-          'left'        => 'Não vê esta aplicação',
-          'right'       => 'Pode abrir',
-          'empty_left'  => 'Toda a gente tem acesso.',
-          'empty_right' => 'Ninguém escolhido: a aplicação está aberta a todos.',
-          'hint'        => 'Com a coluna da direita vazia, a aplicação fica visível para '
-                         . '<b>todos os utilizadores</b>. Assim que lá estiver alguém, passa a '
-                         . 'ser só dessas pessoas. Quem gere aplicações vê-a sempre.',
-      ]);
-    ?>
-    <div class="actions" style="margin-top:10px">
-      <button class="primary" type="submit">Guardar acesso</button>
+  <?php else: ?>
+    <p class="muted">Reservada a <b><?= count($niveisApp) ?></b> pessoa(s).
+      Mais ninguém a vê. Quem gere aplicações vê sempre todas.</p>
+    <div class="chips">
+      <?php foreach ($comNivel as $cu): $nv = $niveisApp[(int)$cu['id']]; ?>
+        <span class="chip <?= $nv === 'admin' ? 'star' : ($nv === 'viewer' ? '' : 'bom') ?>">
+          <?= icone($nv === 'admin' ? 'escudo' : ($nv === 'viewer' ? 'olho' : 'lapis')) ?>
+          <?= e($cu['full_name']) ?> · <?= e($rotulos[$nv] ?? $nv) ?>
+        </span>
+      <?php endforeach; ?>
     </div>
-  </form>
+  <?php endif; ?>
+
+  <div class="actions" style="margin-top:14px">
+    <a class="btn primary" href="permissoes.php?app=<?= (int)$open['id'] ?>">
+      Gerir permissões desta aplicação
+    </a>
+  </div>
+  <p class="muted" style="margin-top:10px">
+    Acesso e nível decidem-se no mesmo sítio, para não haver dois ecrãs a dizer coisas
+    diferentes sobre a mesma aplicação.
+  </p>
 
 <?php endif; ?>
 

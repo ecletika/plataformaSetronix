@@ -88,6 +88,10 @@ if ($manifesto !== null) {
     $boot = [
         'app'   => (int)$app['id'],
         'csrf'  => csrf_token(),
+        // O que esta pessoa pode fazer aqui dentro: 'viewer', 'editor' ou
+        // 'admin'. A aplicação usa-o para desligar o que não é permitido —
+        // mas quem manda é o servidor, que valida na mesma a gravação.
+        'nivel' => app_nivel((int)$user['id'], (int)$app['id']),
         'dados' => dados_ler((int)$app['id']),
     ];
     // json_encode escapa os acentos para \uXXXX: fica ASCII puro e entra

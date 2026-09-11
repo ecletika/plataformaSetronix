@@ -89,6 +89,93 @@ function app_user_ids(int $appId): array
     ));
 }
 
+/**
+ * Níveis de permissão dentro de uma aplicação, do menor para o maior.
+ *
+ * Não confundir com o perfil da plataforma (administrador, utilizador...):
+ * o perfil diz o que a pessoa pode fazer NA plataforma, o nível diz o que
+ * pode fazer DENTRO de uma aplicação em concreto.
+ */
+const APP_NIVEIS = [
+    'viewer' => 'Viewer',
+    'editor' => 'Editor',
+    'admin'  => 'Admin',
+];
+
+/**
+ * Nível desta pessoa nesta aplicação.
+ *
+ * Devolve 'nenhum' quando não lhe pode tocar. Três regras, por esta ordem:
+ *
+ *  1. Quem gere aplicações na plataforma é sempre admin em todas — de outra
+ *     forma podia ficar fechado fora do que lhe compete administrar.
+ *  2. Havendo linha em user_apps, vale o nível que lá está.
+ *  3. Sem linha: numa aplicação aberta a todos (ninguém escolhido) fica
+ *     'editor', que é o que toda a gente tinha antes de haver níveis; numa
+ *     aplicação reservada fica 'nenhum'.
+ */
+function app_nivel(int $userId, int $appId): string
+{
+    static $cache = [];
+    $chave = $userId . ':' . $appId;
+    if (isset($cache[$chave])) {
+        return $cache[$chave];
+    }
+
+    $role = (string)q_val('SELECT role FROM users WHERE id = ?', [$userId]);
+    if (in_array('apps.manage', PERMISSIONS[$role] ?? [], true)) {
+        return $cache[$chave] = 'admin';
+    }
+
+    $nivel = (string)q_val('SELECT nivel FROM user_apps WHERE user_id = ? AND app_id = ?',
+                           [$userId, $appId]);
+    if (isset(APP_NIVEIS[$nivel])) {
+        return $cache[$chave] = $nivel;
+    }
+
+    $reservada = (int)q_val('SELECT COUNT(*) FROM user_apps WHERE app_id = ?', [$appId]) > 0;
+    return $cache[$chave] = $reservada ? 'nenhum' : 'editor';
+}
+
+/**
+ * Dá, muda ou retira o nível de uma pessoa numa aplicação.
+ *
+ * 'nenhum' apaga a linha — é a mesma coisa que não ter acesso. Qualquer
+ * outro nível repõe a aplicação na lista dela: seria estranho dar acesso a
+ * quem a tinha arrumado e ela continuar sem a ver.
+ */
+function app_set_nivel(int $userId, int $appId, string $nivel): void
+{
+    if ($nivel === 'nenhum') {
+        q('DELETE FROM user_apps WHERE user_id = ? AND app_id = ?', [$userId, $appId]);
+        return;
+    }
+    if (!isset(APP_NIVEIS[$nivel])) {
+        throw new RuntimeException('Nível de permissão desconhecido.');
+    }
+    q('INSERT INTO user_apps (user_id, app_id, nivel, granted_by) VALUES (?,?,?,?)
+       ON DUPLICATE KEY UPDATE nivel = VALUES(nivel), granted_by = VALUES(granted_by)',
+      [$userId, $appId, $nivel, current_user()['id'] ?? null]);
+    user_unhide_app($userId, $appId);
+}
+
+/**
+ * Níveis atribuídos numa aplicação, por id de utilizador.
+ *
+ * Só quem tem linha. Quem não aparecer está em 'nenhum' — ou em 'editor',
+ * se a aplicação estiver aberta a todos.
+ *
+ * @return array<int,string>
+ */
+function app_niveis(int $appId): array
+{
+    $out = [];
+    foreach (q_all('SELECT user_id, nivel FROM user_apps WHERE app_id = ?', [$appId]) as $r) {
+        $out[(int)$r['user_id']] = (string)$r['nivel'];
+    }
+    return $out;
+}
+
 /** Ids das aplicações atribuídas explicitamente a um utilizador. */
 function user_app_ids(int $userId): array
 {
@@ -167,12 +254,13 @@ function app_sync_default(int $userId, bool $seesAll = false): array
 /** Define a lista de utilizadores com acesso a uma aplicação. */
 function app_set_users(int $appId, array $userIds): void
 {
+    // Os níveis já atribuídos são para manter: mexer em quem tem acesso não
+    // é motivo para toda a gente voltar a Editor.
+    $antes = app_niveis($appId);
     q('DELETE FROM user_apps WHERE app_id = ?', [$appId]);
     foreach (array_unique(array_map('intval', $userIds)) as $uid) {
         if ($uid > 0) {
-            q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
-              [$uid, $appId, current_user()['id'] ?? null]);
-            user_unhide_app($uid, $appId);
+            app_set_nivel($uid, $appId, $antes[$uid] ?? 'editor');
         }
     }
 }
@@ -180,12 +268,14 @@ function app_set_users(int $appId, array $userIds): void
 /** Define a lista de aplicações atribuídas a um utilizador. */
 function user_set_apps(int $userId, array $appIds): void
 {
+    $antes = [];
+    foreach (q_all('SELECT app_id, nivel FROM user_apps WHERE user_id = ?', [$userId]) as $r) {
+        $antes[(int)$r['app_id']] = (string)$r['nivel'];
+    }
     q('DELETE FROM user_apps WHERE user_id = ?', [$userId]);
     foreach (array_unique(array_map('intval', $appIds)) as $aid) {
         if ($aid > 0) {
-            q('INSERT INTO user_apps (user_id, app_id, granted_by) VALUES (?,?,?)',
-              [$userId, $aid, current_user()['id'] ?? null]);
-            user_unhide_app($userId, $aid);
+            app_set_nivel($userId, $aid, $antes[$aid] ?? 'editor');
         }
     }
 }

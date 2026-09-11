@@ -353,6 +353,135 @@ header.topbar a.brand img{height:28px;width:auto;display:block;filter:var(--logo
 }
 /* SQL por aplicar: mostra-se tal e qual vai correr. */
 pre.sql{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:12px/1.6 ui-monospace,Consolas,monospace;color:var(--ink-2);margin:0 0 14px;white-space:pre}
+
+/* =====================================================================
+   Utilizadores: criar em cima, lista editável na própria linha em baixo
+   ===================================================================== */
+
+/* Perfil como interruptor: coroa é administrador, bonequinho é utilizador.
+   Ocupa menos que um select e lê-se de relance numa coluna estreita. */
+.perfil-sw{display:inline-flex;border:1px solid var(--field);border-radius:9px;
+  background:var(--surface);padding:2px;gap:2px}
+.perfil-sw button{border:0;background:transparent;color:var(--muted);cursor:pointer;
+  width:34px;height:28px;border-radius:7px;display:grid;place-items:center;padding:0}
+.perfil-sw button:hover{color:var(--ink)}
+.perfil-sw button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(27,16,22,.06)}
+.perfil-sw button[data-perfil="manda"][aria-pressed="true"]{color:var(--rail-ink);background:var(--rail-soft)}
+.perfil-sw button[data-perfil="usa"][aria-pressed="true"]{color:var(--accent-ink);background:var(--accent-soft)}
+.perfil-sw svg{width:17px;height:17px}
+.perfil-sw form{display:contents}
+
+/* Os seis botões de uma conta: três em cima, três em baixo. */
+.acoes-conta{display:grid;grid-template-columns:repeat(3,30px);gap:4px;width:max-content}
+.acoes-conta form{display:contents}
+.ico-btn{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;padding:0;
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;
+  text-decoration:none}
+.ico-btn svg{width:15px;height:15px}
+.ico-btn:hover{color:var(--ink);border-color:var(--field);background:var(--surface)}
+.ico-btn.perigo:hover{color:var(--danger);border-color:var(--accent-line);background:var(--accent-soft)}
+.ico-btn.guardar{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
+.ico-btn[disabled]{opacity:.35;cursor:default}
+.ico-btn[disabled]:hover{color:var(--muted);border-color:var(--line);background:var(--panel)}
+
+/* Campos que se escrevem por cima, sem parecerem caixas até lá irmos. */
+.td-edit input{border:1px solid transparent;background:transparent;border-radius:6px;
+  padding:3px 6px;margin:0 0 0 -6px;width:100%;font:inherit;color:var(--ink)}
+.td-edit input:hover{border-color:var(--line);background:var(--panel)}
+.td-edit input:focus{border-color:var(--field);background:var(--panel)}
+.td-edit .u{font-family:ui-monospace,Consolas,monospace;font-size:13px;font-weight:600}
+.td-edit .m{font-size:12.5px;color:var(--muted)}
+.td-edit.conta{display:flex;flex-direction:column;gap:2px;min-width:190px}
+tr.por-guardar{background:var(--rail-soft)}
+
+/* A tabela das contas tem oito colunas: cada uma leva só o que precisa,
+   para caber sem se andar a arrastar a página de um lado para o outro. */
+.tabela-contas{width:100%;table-layout:auto}
+.tabela-contas th,.tabela-contas td{padding:9px 8px;vertical-align:middle}
+.tabela-contas td.col-conta{min-width:180px;width:24%}
+.tabela-contas td.col-nome{min-width:120px;width:16%}
+.tabela-contas td.col-perfil,
+.tabela-contas td.col-estado,
+.tabela-contas td.col-acoes{width:1px;white-space:nowrap}
+.tabela-contas td.col-arranque{min-width:170px;width:18%}
+.tabela-contas .td-edit input{min-width:0}
+
+/* Aplicação de arranque: estrela acesa quando há uma escolhida. */
+.arranque{display:inline-flex;align-items:center;min-width:180px}
+.arranque .estrela{width:32px;height:32px;flex:none;display:grid;place-items:center;
+  border:1px solid var(--field);border-right:0;border-radius:8px 0 0 8px;
+  background:var(--surface);color:var(--field)}
+.arranque .estrela svg{width:16px;height:16px}
+.arranque.tem .estrela{color:var(--rail);background:var(--rail-soft);border-color:var(--rail-line)}
+.arranque select{font:inherit;font-size:13px;height:32px;padding:5px 8px;margin:0;
+  border-radius:0 8px 8px 0;min-width:0;width:100%}
+.arranque.tem select{border-color:var(--rail-line)}
+.arranque form{display:contents}
+.arranque button.aplicar{height:32px;margin-left:6px;padding:0 10px;font-size:12.5px}
+
+/* =====================================================================
+   Permissões: aplicações à esquerda, quem lá entra à direita
+   ===================================================================== */
+.perm-busca{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.perm-busca input{margin:0;font-size:13px;padding:6px 9px;flex:1;min-width:0}
+.perm-busca button{flex:none;width:32px;height:32px;padding:0;display:grid;place-items:center}
+.perm-busca button svg{width:15px;height:15px}
+.perm-lista{display:flex;flex-direction:column;padding:6px;gap:2px;overflow-y:auto;max-height:520px}
+.perm-lista a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;
+  text-decoration:none;color:var(--ink);font-size:13.5px;line-height:1.3}
+.perm-lista a:hover{background:var(--surface)}
+.perm-lista a[aria-current]{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.perm-lista .mk{width:26px;height:26px;flex:none;border-radius:7px;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line);color:var(--muted);
+  font-size:12px;font-weight:700}
+.perm-lista a[aria-current] .mk{background:var(--panel);border-color:var(--accent-line);color:var(--accent)}
+.perm-lista .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.perm-lista .qt{flex:none;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.perm-lista .vazio{padding:16px 10px;color:var(--muted);font-size:13px}
+/* O nome da aplicação é um nome próprio: não leva o tratamento de
+   rótulo de secção que os outros h3 das fichas levam. */
+.card h3.perm-titulo{margin:0 0 4px;font-size:17px;font-weight:650;letter-spacing:-.01em;
+  text-transform:none;color:var(--ink);overflow-wrap:anywhere}
+/* Botão que se lê como uma ligação: uma ação pequena no meio de uma frase. */
+.linkish{border:0;background:none;padding:0;font:inherit;color:var(--accent);
+  text-decoration:underline;cursor:pointer}
+.linkish:hover{color:var(--accent-hi)}
+
+/* Os quatro estados de uma pessoa numa aplicação. */
+.niveis{display:inline-flex;border:1px solid var(--field);border-radius:9px;
+  background:var(--surface);padding:2px;gap:2px}
+.niveis form{display:contents}
+.niveis button{border:0;background:transparent;color:var(--muted);cursor:pointer;
+  height:28px;padding:0 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;
+  font:inherit;font-size:12.5px;white-space:nowrap}
+.niveis button:hover{color:var(--ink)}
+.niveis button svg{width:15px;height:15px}
+.niveis button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(27,16,22,.06);font-weight:600}
+.niveis button[data-n="nenhum"][aria-pressed="true"]{color:var(--muted)}
+.niveis button[data-n="viewer"][aria-pressed="true"]{color:var(--ink-2)}
+.niveis button[data-n="editor"][aria-pressed="true"]{color:var(--accent-ink);background:var(--accent-soft)}
+.niveis button[data-n="admin"][aria-pressed="true"]{color:var(--rail-ink);background:var(--rail-soft)}
+@media (max-width:880px){.niveis button span.rot,.niveis .falso-botao span.rot{display:none}
+  .niveis button,.niveis .falso-botao{padding:0 8px}}
+
+/* O mesmo grupo, mas a escolher em vez de a agir: rádios verdadeiros por
+   baixo, para o teclado e para quem não tem JavaScript, com o botão falso
+   por cima. */
+.niveis label{margin:0;display:inline-flex}
+.sr-radio{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.falso-botao{height:28px;padding:0 10px;border-radius:7px;display:inline-flex;align-items:center;
+  gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.falso-botao svg{width:15px;height:15px}
+.sr-radio:checked + .falso-botao{background:var(--panel);box-shadow:0 1px 2px rgba(27,16,22,.06);font-weight:600}
+.sr-radio:checked + .falso-botao[data-n="admin"]{color:var(--rail-ink);background:var(--rail-soft)}
+.sr-radio:checked + .falso-botao[data-n="gestor"]{color:var(--rail-ink);background:var(--rail-soft)}
+.sr-radio:checked + .falso-botao[data-n="supervisor"]{color:var(--accent-ink);background:var(--accent-soft)}
+.sr-radio:focus-visible + .falso-botao{outline:2px solid var(--accent);outline-offset:1px}
+
+/* Um chip que também é botão continua a ler-se como chip. */
+button.chip{font:inherit;font-size:12px;cursor:pointer}
+button.chip[disabled]{opacity:.5;cursor:default}
+
 footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </style>
 </head>
@@ -779,12 +908,58 @@ function semana_ausencias(array $sem): void
 }
 
 /** Barra de navegação secundária da área de administração. */
+/**
+ * Um ícone, desenhado à mão em SVG.
+ *
+ * Inline e não num ficheiro à parte porque estas páginas também são servidas
+ * em pedaços (a janela das ausências, por exemplo) e um <use> de um sprite
+ * que não veio junto não desenha nada.
+ */
+function icone(string $nome, string $classe = ''): string
+{
+    $t = 'fill="none" stroke="currentColor" stroke-width="1.8" '
+       . 'stroke-linecap="round" stroke-linejoin="round"';
+    $d = [
+        // Perfis
+        'coroa'   => '<path d="M3 17h18l-1.4-9-4.1 3.4L12 5l-3.5 6.4L4.4 8 3 17Z" fill="currentColor"/>'
+                   . '<rect x="3" y="18.4" width="18" height="2.1" rx="1" fill="currentColor"/>',
+        'boneco'  => '<circle cx="12" cy="8" r="3.6" fill="currentColor"/>'
+                   . '<path d="M4.6 20c0-4 3.3-6.4 7.4-6.4s7.4 2.4 7.4 6.4Z" fill="currentColor"/>',
+        // Ações sobre uma conta
+        'lapis'   => '<g ' . $t . '><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/>'
+                   . '<path d="M14.5 5.5 18.5 9.5"/></g>',
+        'chave'   => '<g ' . $t . '><circle cx="8" cy="9" r="4"/><path d="M11 12 20 21"/>'
+                   . '<path d="M17.5 18.5 15.5 20.5"/></g>',
+        'sair'    => '<g ' . $t . '><path d="M12 3.5v8"/><path d="M18 6.6a8 8 0 1 1-12 0"/></g>',
+        'escudo'  => '<g ' . $t . '><path d="M12 3 5 6v6c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6l-7-3Z"/>'
+                   . '<path d="m9 12 2 2 4-4"/></g>',
+        'repor'   => '<g ' . $t . '><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.4h-4.4"/></g>',
+        'caixote' => '<g ' . $t . '><path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.6h5v1.9"/>'
+                   . '<path d="M6.5 6.5 7.4 20h9.2l.9-13.5"/><path d="M10.3 10v6M13.7 10v6"/></g>',
+        'cadeado' => '<g ' . $t . '><rect x="4.5" y="10.5" width="15" height="9.5" rx="2"/>'
+                   . '<path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></g>',
+        // Estados e níveis
+        'estrela' => '<path d="m12 3.4 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.9l6.1-.9L12 3.4Z"'
+                   . ' fill="currentColor"/>',
+        'olho'    => '<g ' . $t . '><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/>'
+                   . '<circle cx="12" cy="12" r="2.8"/></g>',
+        'risco'   => '<g ' . $t . '><path d="M5 12h14"/></g>',
+        'lupa'    => '<g ' . $t . '><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></g>',
+    ];
+    if (!isset($d[$nome])) {
+        return '';
+    }
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"'
+         . ($classe !== '' ? ' class="' . e($classe) . '"' : '') . '>' . $d[$nome] . '</svg>';
+}
+
 function admin_nav(string $current): void
 {
     $items = [
         'index' => ['index.php', 'Resumo',            'view'],
         'apps'  => ['apps.php',  'Aplicações',        'apps.manage'],
         'users' => ['users.php', 'Utilizadores',      'users.manage'],
+        'perms' => ['permissoes.php', 'Permissões',   'users.manage'],
         'audit' => ['audit.php', 'Log de alterações', 'audit.view'],
     ];
     echo '<div class="card" style="padding:10px 14px"><div class="actions">';

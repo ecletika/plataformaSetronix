@@ -88,4 +88,13 @@ CALL setronix_repor_coluna('app_obras', 'criado_em',    'DATETIME NOT NULL DEFAU
 CALL setronix_repor_coluna('app_obras', 'alterado_em',  'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
 CALL setronix_repor_coluna('app_obras', 'alterado_por', 'INT UNSIGNED NULL');
 
+-- ---------------------------------------------------------------------
+-- Nivel de permissao por aplicacao (viewer / editor / admin)
+--
+-- Quem ja tinha acesso fica como 'editor', que e o valor por omissao da
+-- coluna. Para mudar alguem, use Administracao -> Permissoes.
+-- ---------------------------------------------------------------------
+CALL setronix_repor_coluna('user_apps', 'nivel',
+     "ENUM('viewer','editor','admin') NOT NULL DEFAULT 'editor' AFTER app_id");
+
 DROP PROCEDURE IF EXISTS setronix_repor_coluna;
