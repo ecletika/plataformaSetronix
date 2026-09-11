@@ -472,6 +472,21 @@ O que esse botão pode fazer é limitado a duas coisas: **criar uma tabela** e *
 
 **Enquanto não aplicar, nada se perde.** O valor de um campo sem coluna é guardado à mesma, numa coluna de reserva, e volta a chegar à aplicação como ela o deixou. O que não dá, até ter coluna, é **pesquisar por ele ou usá-lo em relatórios feitos na base de dados**. O painel mostra, campo a campo, quais estão de que lado.
 
+### O nível de permissão dentro da aplicação
+
+Uma aplicação preparada para a plataforma pode receber o nível da pessoa e adaptar-se: o
+Viewer não vê os botões que alteram nada, o Editor trabalha normalmente, o Admin tem tudo.
+O nível chega em `SETRONIX_BOOT.nivel` e define-se em **Administração → Permissões**.
+
+**Não é só aparência.** Mesmo que alguém mexa no JavaScript da página para reativar os
+botões, o servidor recusa a gravação a quem estiver como Viewer, e nada é alterado. A
+diferença entre **Editor** e **Admin** é aplicada pela própria aplicação — é ela que sabe
+o que cada uma das suas operações significa.
+
+**Aberto fora da plataforma** (duplo clique no ficheiro HTML), não há quem decida o nível:
+vale Admin e os dados voltam a ficar no browser de quem abriu. É assim de propósito, para
+o ficheiro continuar a servir para desenvolver e testar.
+
 ### Apagar os dados
 
 Uma aplicação que grave na plataforma **não apaga tudo a partir de dentro**. Se a página tiver um botão desses — o *Limpar todos os dados* do Planeamento de Obras, por exemplo — ele explica que os dados são partilhados e não apaga nada. A razão é simples: um botão dentro da página é carregado por qualquer pessoa que a abra, e o que apagaria era o trabalho de toda a gente.

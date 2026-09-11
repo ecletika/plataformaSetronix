@@ -50,6 +50,16 @@ if ($metodo !== 'POST') {
     responder(['erro' => 'Método não permitido.'], 405);
 }
 
+// O nível manda também aqui. Quem só pode consultar não grava, mesmo que
+// mexa no JavaScript da própria página: a aplicação esconde os botões por
+// comodidade, mas quem decide é o servidor.
+$nivel = app_nivel((int)$user['id'], (int)$app['id']);
+if ($nivel !== 'editor' && $nivel !== 'admin') {
+    responder(['erro' => 'O seu nível nesta aplicação é '
+        . (APP_NIVEIS[$nivel] ?? 'sem acesso')
+        . ': pode consultar, mas não alterar.'], 403);
+}
+
 // O corpo vem em JSON, por isso $_POST está vazio: o token viaja no
 // cabeçalho. csrf_check() aceita os dois.
 csrf_check();
