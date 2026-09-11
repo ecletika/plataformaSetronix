@@ -138,10 +138,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             q('UPDATE users SET username = ?, email = ?, full_name = ? WHERE id = ?',
               [$username, $email, $fullName, $id]);
+
+            // A aplicação de arranque vem no mesmo formulário: é a estrela
+            // ao lado, e guarda-se na mesma passagem.
+            $appId   = (int)($_POST['default_app'] ?? 0);
+            $dfltAntes = (int)q_val('SELECT pvalue FROM user_prefs WHERE user_id = ? AND pkey = ?',
+                                    [$id, 'default_app']);
+            $nomeApp = '';
+            $valida  = $appId === 0;
+            foreach (apps_for_user($id, in_array($target['role'], ['admin', 'gestor'], true)) as $da) {
+                if ((int)$da['id'] === $appId) {
+                    $valida  = true;
+                    $nomeApp = (string)$da['name'];
+                    break;
+                }
+            }
+            if (!$valida) {
+                throw new RuntimeException('Essa aplicação não está disponível para '
+                    . $username . '. Dê-lhe acesso em Permissões primeiro.');
+            }
+            if ($appId !== $dfltAntes) {
+                app_set_default($id, $appId, 'admin');
+            }
+
             audit('update', 'user', $id, 'Utilizador atualizado: ' . $username,
-                  audit_scrub($target),
-                  ['username' => $username, 'email' => $email, 'full_name' => $fullName]);
-            flash('ok', 'Dados de ' . $username . ' guardados.');
+                  audit_scrub($target) + ['default_app' => $dfltAntes],
+                  ['username' => $username, 'email' => $email, 'full_name' => $fullName,
+                   'default_app' => $appId]);
+            flash('ok', 'Linha de ' . $username . ' guardada'
+                . ($appId === $dfltAntes ? '.'
+                   : ($appId === 0 ? '. Passa a ver a lista ao entrar.'
+                                   : '. Passa a abrir "' . $nomeApp . '" ao entrar.')));
             redirect('users.php');
 
         } elseif ($action === 'perfil') {
@@ -163,33 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       ['role' => $target['role']], ['role' => $perfilNovo]);
                 flash('ok', $target['username'] . ' passa a ' . ROLES[$perfilNovo] . '.');
             }
-            redirect('users.php');
-
-        } elseif ($action === 'arranque') {
-            if (!$target) {
-                throw new RuntimeException('Utilizador não encontrado.');
-            }
-            $appId = (int)($_POST['default_app'] ?? 0);
-            $nome  = '';
-            $valida = $appId === 0;
-            foreach (apps_for_user($id, in_array($target['role'], ['admin', 'gestor'], true)) as $da) {
-                if ((int)$da['id'] === $appId) {
-                    $valida = true;
-                    $nome   = (string)$da['name'];
-                    break;
-                }
-            }
-            if (!$valida) {
-                throw new RuntimeException('Essa aplicação não está disponível para este utilizador. '
-                    . 'Dê-lhe acesso em Permissões primeiro.');
-            }
-            app_set_default($id, $appId, 'admin');
-            audit('update', 'user', $id, $appId === 0
-                ? 'Sem aplicação a abrir ao entrar: ' . $target['username']
-                : 'Aplicação a abrir ao entrar de ' . $target['username'] . ': ' . $nome);
-            flash('ok', $appId === 0
-                ? $target['username'] . ' passa a ver a lista ao entrar.'
-                : $target['username'] . ' passa a abrir "' . $nome . '" ao entrar.');
             redirect('users.php');
 
         } elseif ($action === 'reset_password') {
@@ -462,8 +462,8 @@ layout_head('Utilizadores', 'app', '../');
 <!-- ===================================================== a lista -->
 <div class="card">
   <h2>Utilizadores (<?= count($users) ?>)</h2>
-  <p class="muted">Escreva por cima para corrigir os dados. A linha fica marcada até guardar
-    no lápis.</p>
+  <p class="muted">Escreva por cima para corrigir os dados e carregue em <b>Aplicar</b>, ao
+    fundo da linha, para os guardar. O perfil e o estado gravam-se logo ao carregar neles.</p>
 
   <div class="scroll">
     <table class="tabela-contas">
@@ -547,10 +547,6 @@ layout_head('Utilizadores', 'app', '../');
 
           <td class="col-acoes">
             <div class="acoes-conta">
-              <button form="<?= $f ?>" type="submit" name="action" value="linha"
-                      class="ico-btn" data-guardar title="Guardar as alterações desta linha"
-                      aria-label="Guardar as alterações desta linha"><?= icone('lapis') ?></button>
-
               <button form="<?= $f ?>" type="submit" name="action" value="reset_password"
                       class="ico-btn" title="Repor palavra-passe" aria-label="Repor palavra-passe"
                       onclick="return confirm('Repor a palavra-passe de <?= e($u['username']) ?>?')"><?= icone('chave') ?></button>
@@ -594,8 +590,11 @@ layout_head('Utilizadores', 'app', '../');
                   </option>
                 <?php endforeach; ?>
               </select>
-              <button form="<?= $f ?>" type="submit" name="action" value="arranque"
-                      class="btn aplicar">Aplicar</button>
+              <button form="<?= $f ?>" type="submit" name="action" value="linha"
+                      class="btn aplicar" data-guardar
+                      title="Guardar esta linha: utilizador, e-mail, nome e aplicação de arranque">
+                Aplicar
+              </button>
             </div>
           </td>
         </tr>
@@ -605,8 +604,8 @@ layout_head('Utilizadores', 'app', '../');
   </div>
 
   <p class="muted" style="margin-top:12px">
-    <b>Ações:</b> lápis guarda a linha · chave repõe a palavra-passe · o botão redondo termina
-    as sessões abertas · escudo exige MFA · seta repõe o MFA · caixote apaga a conta.
+    <b>Ações:</b> chave repõe a palavra-passe · o botão redondo termina as sessões abertas ·
+    escudo exige MFA · seta repõe o MFA · caixote apaga a conta.
     Desativar impede o acesso e mantém o histórico ligado à conta; apagar remove-a de vez.
     Em qualquer dos casos, o log de alterações guarda o que a pessoa fez.
   </p>
@@ -627,24 +626,28 @@ foreach ($users as $u): ?>
 <script>
 // Duas comodidades, e nada mais: sem isto a página funciona na mesma.
 (function () {
+  function marcar(tr) {
+    if (!tr) { return; }
+    tr.classList.add('por-guardar');
+    var bt = tr.querySelector('[data-guardar]');
+    if (bt) { bt.classList.add('guardar'); }
+  }
+
   // 1. Marcar a linha enquanto houver coisa por guardar.
   document.querySelectorAll('tr[data-linha]').forEach(function (tr) {
     tr.addEventListener('input', function (ev) {
-      if (!ev.target.matches('.td-edit input')) { return; }
-      tr.classList.add('por-guardar');
-      var lapis = tr.querySelector('[data-guardar]');
-      if (lapis) { lapis.classList.add('guardar'); }
+      if (ev.target.matches('.td-edit input')) { marcar(tr); }
     });
   });
 
-  // 2. A estrela aplica-se sozinha ao escolher. O botão ao lado só existe
-  //    para quem não tem JavaScript, por isso desaparece aqui.
-  document.querySelectorAll('.arranque').forEach(function (cx) {
-    var sel = cx.querySelector('select');
-    var bt  = cx.querySelector('button.aplicar');
-    if (!sel || !bt) { return; }
-    bt.hidden = true;
-    sel.addEventListener('change', function () { bt.click(); });
+  // 2. Trocar a estrela também deixa a linha por guardar: o que muda aqui
+  //    só vai para a base de dados quando se carregar em Aplicar.
+  document.querySelectorAll('.arranque select').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var cx = sel.closest('.arranque');
+      if (cx) { cx.classList.toggle('tem', sel.value !== '0'); }
+      marcar(sel.closest('tr[data-linha]'));
+    });
   });
 })();
 </script>

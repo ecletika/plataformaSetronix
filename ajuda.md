@@ -255,18 +255,21 @@ aplicação, e com que nível, decide-se no separador **Permissões**.
 - **Estado** — Ativo ou Inativo; carregue para trocar. Se a conta estiver bloqueada por tentativas falhadas, aparece por baixo um botão **Desbloquear**.
 - **MFA** — Associado ou Por associar, e "exigido" em letra pequena quando é obrigatório.
 - **Presença** — verde é estar em linha nos últimos cinco minutos.
-- **Ações** — seis ícones, três em cima e três em baixo (ver a seguir).
-- **App de arranque** — a estrela e a lista das aplicações a que essa pessoa tem acesso. Acende a laranja quando há uma escolhida. A primeira opção é **Nenhuma**, que faz a pessoa ver a lista ao entrar.
+- **Ações** — cinco ícones, para as operações sobre a conta (ver a seguir).
+- **App de arranque** — a estrela, a lista das aplicações a que essa pessoa tem acesso, e o botão **Aplicar**. A estrela acende a laranja quando há uma escolhida. A primeira opção é **Nenhuma**, que faz a pessoa ver a lista ao entrar.
 
-**Editar na própria linha:** escreva por cima do utilizador, do e-mail ou do nome. A linha
-fica marcada a amarelo e o lápis acende, até carregar no lápis para guardar. Sair da página
-sem guardar deita fora o que escreveu.
+**Editar na própria linha:** escreva por cima do utilizador, do e-mail ou do nome, ou troque
+a aplicação de arranque. A linha fica marcada a amarelo e o botão **Aplicar** acende, até
+carregar nele. Um só clique guarda tudo o que mudou nessa linha. Sair da página sem carregar
+em Aplicar deita fora o que escreveu.
 
-**Os seis ícones:**
+O **perfil** e o **estado** são a exceção: gravam logo ao carregar neles, sem passar pelo
+Aplicar — são um clique só, e não há nada a escrever antes.
+
+**Os cinco ícones:**
 
 | Ícone | O que faz |
 |---|---|
-| Lápis | Guarda o que escreveu nesta linha. |
 | Chave | Repõe a palavra-passe. Gera uma nova, mostra-a uma vez e obriga a alterá-la no próximo início de sessão. |
 | Botão de ligar | Termina todas as sessões abertas da pessoa, em todos os equipamentos. |
 | Escudo | Passa a exigir, ou deixa de exigir, MFA a esta conta. Fica apagado quando o MFA é exigido a toda a gente. |

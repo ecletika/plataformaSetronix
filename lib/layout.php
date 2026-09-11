@@ -422,65 +422,93 @@ tr.por-guardar{background:var(--rail-soft)}
 /* =====================================================================
    Permissões: aplicações à esquerda, quem lá entra à direita
    ===================================================================== */
+/* Coluna própria, e não o índice das fichas: lá uma regra estica o
+   primeiro elemento de cada linha, e a inicial da aplicação saía um
+   retângulo do tamanho da linha toda. */
+.perm-corpo{display:grid;grid-template-columns:272px minmax(0,1fr);align-items:stretch}
+.perm-coluna{border-right:1px solid var(--line);background:var(--surface);min-width:0}
+.perm-painel{padding:18px 22px 24px;min-width:0}
+
 .perm-busca{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .perm-busca input{margin:0;font-size:13px;padding:6px 9px;flex:1;min-width:0}
 .perm-busca button{flex:none;width:32px;height:32px;padding:0;display:grid;place-items:center}
 .perm-busca button svg{width:15px;height:15px}
-.perm-lista{display:flex;flex-direction:column;padding:6px;gap:2px;overflow-y:auto;max-height:520px}
+
+.perm-lista{display:flex;flex-direction:column;padding:6px;gap:2px;overflow-y:auto;max-height:560px}
 .perm-lista a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;
   text-decoration:none;color:var(--ink);font-size:13.5px;line-height:1.3}
-.perm-lista a:hover{background:var(--surface)}
+.perm-lista a:hover{background:var(--panel)}
 .perm-lista a[aria-current]{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
-.perm-lista .mk{width:26px;height:26px;flex:none;border-radius:7px;display:grid;place-items:center;
-  background:var(--surface);border:1px solid var(--line);color:var(--muted);
-  font-size:12px;font-weight:700}
-.perm-lista a[aria-current] .mk{background:var(--panel);border-color:var(--accent-line);color:var(--accent)}
-.perm-lista .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Quadrado pequeno com a inicial, não uma faixa. */
+.perm-lista .mk{flex:0 0 24px;width:24px;height:24px;border-radius:6px;
+  display:grid;place-items:center;background:var(--panel);border:1px solid var(--line);
+  color:var(--muted);font-size:11.5px;font-weight:700;line-height:1}
+.perm-lista a[aria-current] .mk{border-color:var(--accent-line);color:var(--accent)}
+/* O nome ocupa o resto e quebra em duas linhas em vez de ser cortado:
+   "Avaliacao_Fornecedores_Setronix_2025_2026" não cabe numa. */
+.perm-lista .nome{flex:1;min-width:0;overflow-wrap:anywhere}
 .perm-lista .qt{flex:none;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .perm-lista .vazio{padding:16px 10px;color:var(--muted);font-size:13px}
-/* O nome da aplicação é um nome próprio: não leva o tratamento de
-   rótulo de secção que os outros h3 das fichas levam. */
-.card h3.perm-titulo{margin:0 0 4px;font-size:17px;font-weight:650;letter-spacing:-.01em;
-  text-transform:none;color:var(--ink);overflow-wrap:anywhere}
 /* Botão que se lê como uma ligação: uma ação pequena no meio de uma frase. */
 .linkish{border:0;background:none;padding:0;font:inherit;color:var(--accent);
   text-decoration:underline;cursor:pointer}
 .linkish:hover{color:var(--accent-hi)}
+/* O nome da aplicação é um nome próprio: não leva o tratamento de
+   rótulo de secção que os outros h3 das fichas levam. */
+.card h3.perm-titulo{margin:0 0 4px;font-size:17px;font-weight:650;letter-spacing:-.01em;
+  text-transform:none;color:var(--ink);overflow-wrap:anywhere}
 
-/* Os quatro estados de uma pessoa numa aplicação. */
-.niveis{display:inline-flex;border:1px solid var(--field);border-radius:9px;
-  background:var(--surface);padding:2px;gap:2px}
+/* O nome da pessoa encosta ao nível: entre os dois não há nada para ler,
+   e com a coluna larga ficava-se sem saber qual linha era qual. */
+.perm-tabela{width:100%}
+.perm-tabela td.pessoa{width:1px;white-space:nowrap;padding-right:26px}
+.perm-tabela td.nivel{width:auto}
+
+/* Os quatro estados de uma pessoa numa aplicação.
+
+   O escolhido é um botão cheio, com texto branco: tem de se ver de
+   relance quem está em quê, sem ir comparar tons de cinzento. */
+.niveis{display:inline-flex;border:1px solid var(--field);border-radius:10px;
+  background:var(--surface);padding:3px;gap:3px}
 .niveis form{display:contents}
-.niveis button{border:0;background:transparent;color:var(--muted);cursor:pointer;
-  height:28px;padding:0 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;
-  font:inherit;font-size:12.5px;white-space:nowrap}
-.niveis button:hover{color:var(--ink)}
+.niveis button{border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;
+  height:30px;padding:0 11px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;
+  font:inherit;font-size:12.5px;white-space:nowrap;transition:background .12s,color .12s}
+.niveis button:hover{color:var(--ink);background:var(--panel);border-color:var(--line)}
 .niveis button svg{width:15px;height:15px}
-.niveis button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(27,16,22,.06);font-weight:600}
-.niveis button[data-n="nenhum"][aria-pressed="true"]{color:var(--muted)}
-.niveis button[data-n="viewer"][aria-pressed="true"]{color:var(--ink-2)}
-.niveis button[data-n="editor"][aria-pressed="true"]{color:var(--accent-ink);background:var(--accent-soft)}
-.niveis button[data-n="admin"][aria-pressed="true"]{color:var(--rail-ink);background:var(--rail-soft)}
+.niveis button[aria-pressed="true"]{color:#fff;font-weight:650;border-color:transparent;
+  box-shadow:0 1px 3px rgba(27,16,22,.28)}
+.niveis button[aria-pressed="true"]:hover{color:#fff;border-color:transparent}
+.niveis button[data-n="nenhum"][aria-pressed="true"]{background:#6b5c62}
+.niveis button[data-n="viewer"][aria-pressed="true"]{background:#334155}
+.niveis button[data-n="editor"][aria-pressed="true"]{background:var(--accent)}
+.niveis button[data-n="admin"][aria-pressed="true"]{background:#8a5200}
 @media (max-width:880px){.niveis button span.rot,.niveis .falso-botao span.rot{display:none}
-  .niveis button,.niveis .falso-botao{padding:0 8px}}
+  .niveis button,.niveis .falso-botao{padding:0 9px}}
 
 /* O mesmo grupo, mas a escolher em vez de a agir: rádios verdadeiros por
    baixo, para o teclado e para quem não tem JavaScript, com o botão falso
    por cima. */
 .niveis label{margin:0;display:inline-flex}
 .sr-radio{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
-.falso-botao{height:28px;padding:0 10px;border-radius:7px;display:inline-flex;align-items:center;
+.falso-botao{height:30px;padding:0 11px;border-radius:7px;display:inline-flex;align-items:center;
   gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap;cursor:pointer}
 .falso-botao svg{width:15px;height:15px}
-.sr-radio:checked + .falso-botao{background:var(--panel);box-shadow:0 1px 2px rgba(27,16,22,.06);font-weight:600}
-.sr-radio:checked + .falso-botao[data-n="admin"]{color:var(--rail-ink);background:var(--rail-soft)}
-.sr-radio:checked + .falso-botao[data-n="gestor"]{color:var(--rail-ink);background:var(--rail-soft)}
-.sr-radio:checked + .falso-botao[data-n="supervisor"]{color:var(--accent-ink);background:var(--accent-soft)}
+.sr-radio:checked + .falso-botao{color:#fff;font-weight:650;background:var(--ink-2);
+  box-shadow:0 1px 3px rgba(27,16,22,.28)}
+.sr-radio:checked + .falso-botao[data-n="admin"]{background:#8a5200}
+.sr-radio:checked + .falso-botao[data-n="gestor"]{background:#8a5200}
+.sr-radio:checked + .falso-botao[data-n="supervisor"]{background:var(--accent)}
 .sr-radio:focus-visible + .falso-botao{outline:2px solid var(--accent);outline-offset:1px}
 
 /* Um chip que também é botão continua a ler-se como chip. */
 button.chip{font:inherit;font-size:12px;cursor:pointer}
 button.chip[disabled]{opacity:.5;cursor:default}
+
+@media (max-width:760px){
+  .perm-corpo{grid-template-columns:1fr}
+  .perm-coluna{border-right:0;border-bottom:1px solid var(--line)}
+}
 
 footer.foot{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </style>

@@ -167,9 +167,9 @@ layout_head('Permissões', 'app', '../');
       <b>Admin</b> pode tudo lá dentro.</p>
   </div>
 
-  <div class="ficha-corpo">
+  <div class="perm-corpo">
     <!-- ------------------------------------------------- aplicações -->
-    <div class="ficha-indice" style="padding:0">
+    <div class="perm-coluna">
       <form method="get" class="perm-busca">
         <input type="search" name="q" value="<?= e($busca) ?>" placeholder="Procurar aplicação..."
                aria-label="Procurar aplicação">
@@ -199,7 +199,7 @@ layout_head('Permissões', 'app', '../');
     </div>
 
     <!-- ------------------------------------------------------ quem -->
-    <div class="ficha-painel">
+    <div class="perm-painel">
       <?php if (!$app): ?>
         <p class="muted">Escolha uma aplicação à esquerda.</p>
       <?php else: ?>
@@ -226,7 +226,7 @@ layout_head('Permissões', 'app', '../');
         <?php endif; ?>
 
         <div class="scroll">
-          <table>
+          <table class="perm-tabela">
             <thead>
               <tr><th>Pessoa</th><th>Nível nesta aplicação</th></tr>
             </thead>
@@ -236,7 +236,7 @@ layout_head('Permissões', 'app', '../');
                 $gere  = in_array('apps.manage', PERMISSIONS[$p['role']] ?? [], true);
                 $atual = $gere ? 'admin' : ($niveis[$pid] ?? ($reservada ? 'nenhum' : 'editor')); ?>
               <tr>
-                <td>
+                <td class="pessoa">
                   <b><?= e($p['full_name']) ?></b>
                   <br><span class="muted mono" style="font-size:12px"><?= e($p['username']) ?></span>
                   <?php if (isset($escondidas[$pid])): ?>
@@ -253,7 +253,7 @@ layout_head('Permissões', 'app', '../');
                     </span>
                   <?php endif; ?>
                 </td>
-                <td>
+                <td class="nivel">
                   <?php if ($gere): ?>
                     <span class="chip star"><?= icone('escudo') ?> Admin — gere aplicações</span>
                     <span class="muted" style="font-size:11.5px;display:block;margin-top:3px">
